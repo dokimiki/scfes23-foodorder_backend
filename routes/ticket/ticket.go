@@ -9,16 +9,13 @@ import (
 )
 
 type price struct {
-	YenPricePerTicket int `json:"yenPricePerTicket"`
+	YenPricePerTicket int `json:"yenPrice"`
 }
 
 func GetPrice(c echo.Context) error {
 	result := price{}
-	db_result := models.Ticket{}
 
-	database.DB.Model(models.Ticket{}).Limit(1).Scan(&db_result)
-
-	result.YenPricePerTicket = db_result.YenPricePerTicket
+	database.DB.Model(models.Ticket{}).Limit(1).Scan(&result)
 
 	return c.JSON(http.StatusOK, result)
 }

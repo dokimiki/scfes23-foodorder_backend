@@ -79,7 +79,7 @@ type StoreKeeperRequest struct {
 	DeletedAt     *time.Time
 }
 
-type MenuDetails struct {
+type MenuDetail struct {
 	MenuID      uint32 `gorm:"primary_key"`
 	Remaining   int    `gorm:"not null"`
 	TicketPrice int    `gorm:"not null"`

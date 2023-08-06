@@ -34,12 +34,12 @@ func main() {
 	v1.GET("", Hello)
 
 	ticket := v1.Group("/ticket")
-	ticket.GET("/price", ticket_route.GetPrice) // TODO: Replace HELLO to get price
+	ticket.GET("/price", ticket_route.GetPrice)
 
 	stores := v1.Group("/stores/:store_id")
-	stores.GET("", stores_route.GetStoreInfo)      // TODO: Replace HELLO to get store info
-	stores.GET("/menus", stores_route.GetMenuList) // TODO: Replace HELLO to get menus
-	stores.GET("/menus/:menu_id", Hello)           // TODO: Replace HELLO to get menu
+	stores.GET("", stores_route.GetStoreInfo)
+	stores.GET("/menus", stores_route.GetMenuList)
+	stores.GET("/menus/:menu_id", stores_route.GetMenuDetail)
 
 	user := v1.Group("/user")
 	user.POST("/signup", Hello) // TODO: Replace HELLO to signup
