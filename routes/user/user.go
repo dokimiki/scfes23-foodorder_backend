@@ -27,7 +27,7 @@ type JWTResponse struct {
 }
 
 type UserInfoResponse struct {
-	Token       string `json:"token"`
+	ID          uint32 `json:"id"`
 	CancelCount int    `json:"cancelCount"`
 }
 
@@ -106,7 +106,7 @@ func UserInfo(c echo.Context) error {
 		return c.JSON(http.StatusOK, epr.APIError(err.Error()))
 	}
 
-	result.Token = userInfo.Token
+	result.ID = userInfo.ID
 	result.CancelCount = userInfo.CancelCount
 
 	return c.JSON(http.StatusOK, result)
