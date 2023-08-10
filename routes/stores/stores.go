@@ -1,6 +1,7 @@
 package stores_route
 
 import (
+	"database/sql"
 	"errors"
 	"net/http"
 
@@ -45,7 +46,7 @@ type menuDetailInfo struct {
 	Remaining   int              `json:"remaining"`
 	TicketPrice int              `json:"price"`
 	Discount    int              `json:"discount"`
-	Allergen    menuAllergenInfo `json:"allergen"`
+	Allergen    menuAllergenInfo `json:"allergen" gorm:"-"`
 }
 
 func checkStoreIsExist(storeID string) (uint32, error) {
@@ -98,32 +99,39 @@ func GetMenuDetail(c echo.Context) error {
 
 	strMenuId := c.Param("menu_id")
 
-	// begin a transaction
-	tx := database.DB.Begin()
-
-	var menu models.Menu = models.Menu{}
+	txOptions := &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}
 
 	result := menuDetailInfo{}
 
-	// TODO: 出てるエラーを直す
-	if err := tx.Where("str_id = ? AND store_id = ?", strMenuId, intStoreId).Take(&menu).Scan(&result).Error; errors.Is(err, gorm.ErrRecordNotFound) {
-		tx.Rollback()
-		return c.JSON(http.StatusOK, epr.APIError("指定されたメニューがありません(menu is not exist)"))
-	}
-	menuId := menu.ID
+	err = database.DB.Transaction(func(tx *gorm.DB) error {
+		var menu models.Menu = models.Menu{}
+		if err := tx.Where("str_id = ? AND store_id = ?", strMenuId, intStoreId).Take(&menu).Scan(&result).Error; errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("指定されたメニューがありません(menu is not exist)")
+		} else if err != nil {
+			return err
+		}
+		menuId := menu.ID
 
-	if err := tx.Model(models.MenuDetail{}).Where("menu_id = ?", menuId).Scan(&result).Error; errors.Is(err, gorm.ErrRecordNotFound) {
-		tx.Rollback()
-		return c.JSON(http.StatusOK, epr.APIError("指定されたメニューがありません(menu detail is not exist)"))
-	}
+		if err := tx.Model(models.MenuDetail{}).Where("menu_id = ?", menuId).Scan(&result).Error; errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("指定されたメニューがありません(menu detail is not exist)")
+		} else if err != nil {
+			return err
+		}
 
-	if err := tx.Model(models.MenuAllergen{}).Where("menu_id = ?", menuId).Scan(&result.Allergen).Error; errors.Is(err, gorm.ErrRecordNotFound) {
-		tx.Rollback()
-		return c.JSON(http.StatusOK, epr.APIError("指定されたメニューがありません(menu allergen is not exist)"))
-	}
+		if err := tx.Model(models.MenuAllergen{}).Where("menu_id = ?", menuId).Scan(&result.Allergen).Error; errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("指定されたメニューがありません(menu allergen is not exist)")
+		} else if err != nil {
+			return err
+		}
+		return nil
+	}, txOptions)
 
-	// commit the transaction
-	tx.Commit()
+	if err != nil {
+		return c.JSON(http.StatusOK, epr.APIError(err.Error()))
+	}
 
 	return c.JSON(http.StatusOK, result)
 }
