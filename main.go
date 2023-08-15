@@ -44,15 +44,14 @@ func main() {
 	stores.GET("/menus/:menu_id", stores_route.GetMenuDetail)
 
 	user := v1.Group("/user")
-	// POST context: {screenWidth: number, screenHeight: number}
 	user.POST("/signup", user_route.SignUp)
 
 	userWithAuth := user.Group("/me")
 	userWithAuth.Use(echojwt.JWT([]byte(signature)))
-	userWithAuth.GET("", Hello)                          // TODO: Replace HELLO to get user info
-	userWithAuth.GET("/orders", Hello)                   // TODO: Replace HELLO to get user orders
-	userWithAuth.GET("/orders/:order_id", Hello)         // TODO: Replace HELLO to get user order
-	userWithAuth.POST("/orders/:order_id/cancel", Hello) // TODO: Replace HELLO to cancel user order
+	userWithAuth.GET("", user_route.UserInfo)
+	userWithAuth.GET("/orders/:store_id", user_route.GetOrder)
+	userWithAuth.GET("/orders/:store_id/items", user_route.GetOrderItems)
+	userWithAuth.POST("/orders/:store_id/cancel", user_route.CancelOrder)
 
 	storekeeper := v1.Group("/storekeeper")
 	storekeeper.POST("/request", Hello) // TODO: Replace HELLO to request storekeeper

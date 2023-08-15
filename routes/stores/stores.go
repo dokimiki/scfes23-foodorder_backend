@@ -12,126 +12,103 @@ import (
 	"gorm.io/gorm"
 )
 
-type storeInfo struct {
-	StrID    string `json:"id"`
-	Name     string `json:"name"`
-	Location string `json:"location"`
-	Features string `json:"features"`
-}
-
-type menuListInfo struct {
-	StrID       string `json:"id"`
-	Name        string `json:"name"`
-	ImgURL      string `json:"imageUrl"`
-	TicketPrice int    `json:"price"`
-	Discount    int    `json:"discount"`
-}
-
-type menuAllergenInfo struct {
-	Ebi    string `json:"ebi"`
-	Kani   string `json:"kani"`
-	Komugi string `json:"komugi"`
-	Kurumi string `json:"kurumi"`
-	Milk   string `json:"milk"`
-	Peanut string `json:"peanut"`
-	Soba   string `json:"soba"`
-	Tamago string `json:"tamago"`
-}
-
-type menuDetailInfo struct {
-	StrID       string           `json:"id"`
-	Name        string           `json:"name"`
-	Features    string           `json:"features"`
-	ImgURL      string           `json:"imageUrl"`
-	Remaining   int              `json:"remaining"`
-	TicketPrice int              `json:"price"`
-	Discount    int              `json:"discount"`
-	Allergen    menuAllergenInfo `json:"allergen" gorm:"-"`
-}
-
-func checkStoreIsExist(storeID string) (uint32, error) {
-	result := models.Store{}
-
-	if err := database.DB.Where("str_id = ?", storeID).Take(&result).Error; errors.Is(err, gorm.ErrRecordNotFound) {
-		return 0, errors.New("指定された店舗がありません(store is not exist)")
-	}
-
-	return result.ID, nil
-}
-
 func GetStoreInfo(c echo.Context) error {
-	strStoreId := c.Param("store_id")
-	intStoreId, err := checkStoreIsExist(strStoreId)
-	if err != nil {
-		return c.JSON(http.StatusOK, epr.APIError(err.Error()))
+	type res struct {
+		StrID    string `json:"id"`
+		Name     string `json:"name"`
+		Location string `json:"location"`
+		Features string `json:"features"`
 	}
 
-	result := storeInfo{}
-	database.DB.Model(models.Store{}).Where("id = ?", intStoreId).Scan(&result)
+	StoreId := c.Param("store_id")
+	r := res{}
 
-	return c.JSON(http.StatusOK, result)
+	if err := database.DB.Model(models.Store{}).Where("str_id = ?", StoreId).Scan(&r).Error; errors.Is(err, gorm.ErrRecordNotFound) {
+		return c.JSON(http.StatusOK, epr.APIError("指定された店舗がありません(store is not exist)"))
+	} else if err != nil {
+		return c.JSON(http.StatusOK, epr.APIError("エラーが発生しました(error occurred)"))
+	}
+
+	return c.JSON(http.StatusOK, r)
 }
 
 func GetMenuList(c echo.Context) error {
-	strStoreId := c.Param("store_id")
-	intStoreId, err := checkStoreIsExist(strStoreId)
-	if err != nil {
-		return c.JSON(http.StatusOK, epr.APIError(err.Error()))
+	type res struct {
+		StrID       string `json:"id"`
+		Name        string `json:"name"`
+		ImgURL      string `json:"imageUrl"`
+		TicketPrice int    `json:"price"`
+		Discount    int    `json:"discount"`
 	}
 
-	result := []menuListInfo{}
+	StoreID := c.Param("store_id")
+	r := []res{}
 
-	database.DB.Model(models.Menu{}).
+	if err := database.DB.Model(models.Menu{}).
 		Select("menus.str_id, menus.name, menus.img_url, menu_details.ticket_price, menu_details.discount").
-		Where("store_id = ?", intStoreId).
+		Where("store_str_id = ?", StoreID).
 		Joins("INNER JOIN menu_details ON menus.id = menu_details.menu_id").
-		Scan(&result)
+		Scan(&r).Error; err != nil {
+		return c.JSON(http.StatusOK, epr.APIError("エラーが発生しました(error occurred)"))
+	}
 
-	return c.JSON(http.StatusOK, result)
+	return c.JSON(http.StatusOK, r)
 }
 
 func GetMenuDetail(c echo.Context) error {
-	strStoreId := c.Param("store_id")
-	intStoreId, err := checkStoreIsExist(strStoreId)
-	if err != nil {
-		return c.JSON(http.StatusOK, epr.APIError(err.Error()))
+	type res struct {
+		StrID       string `json:"id"`
+		Name        string `json:"name"`
+		Features    string `json:"features"`
+		ImgURL      string `json:"imageUrl"`
+		Remaining   int    `json:"remaining"`
+		TicketPrice int    `json:"price"`
+		Discount    int    `json:"discount"`
+		Allergen    struct {
+			Ebi    string `json:"ebi"`
+			Kani   string `json:"kani"`
+			Komugi string `json:"komugi"`
+			Kurumi string `json:"kurumi"`
+			Milk   string `json:"milk"`
+			Peanut string `json:"peanut"`
+			Soba   string `json:"soba"`
+			Tamago string `json:"tamago"`
+		} `json:"allergen" gorm:"-"`
 	}
 
-	strMenuId := c.Param("menu_id")
-
+	StoreId := c.Param("store_id")
+	MenuId := c.Param("menu_id")
 	txOptions := &sql.TxOptions{
 		Isolation: 0,
 		ReadOnly:  true,
 	}
+	r := res{}
 
-	result := menuDetailInfo{}
-
-	err = database.DB.Transaction(func(tx *gorm.DB) error {
-		var menu models.Menu = models.Menu{}
-		if err := tx.Where("str_id = ? AND store_id = ?", strMenuId, intStoreId).Take(&menu).Scan(&result).Error; errors.Is(err, gorm.ErrRecordNotFound) {
-			return errors.New("指定されたメニューがありません(menu is not exist)")
-		} else if err != nil {
-			return err
-		}
-		menuId := menu.ID
-
-		if err := tx.Model(models.MenuDetail{}).Where("menu_id = ?", menuId).Scan(&result).Error; errors.Is(err, gorm.ErrRecordNotFound) {
-			return errors.New("指定されたメニューがありません(menu detail is not exist)")
-		} else if err != nil {
+	if err := database.DB.Transaction(func(tx *gorm.DB) error {
+		// menuの取得
+		menu := models.Menu{}
+		if err := tx.Where("str_id = ? AND store_str_id = ?", MenuId, StoreId).Take(&menu).Scan(&r).Error; err != nil {
 			return err
 		}
 
-		if err := tx.Model(models.MenuAllergen{}).Where("menu_id = ?", menuId).Scan(&result.Allergen).Error; errors.Is(err, gorm.ErrRecordNotFound) {
-			return errors.New("指定されたメニューがありません(menu allergen is not exist)")
-		} else if err != nil {
+		// menu detailの取得
+		if err := tx.Model(models.MenuDetail{}).Where("menu_id = ?", menu.ID).Scan(&r).Error; err != nil {
 			return err
 		}
+
+		// menu allergenの取得
+		if err := tx.Model(models.MenuAllergen{}).Where("menu_id = ?", menu.ID).Scan(&r.Allergen).Error; err != nil {
+			return err
+		}
+
 		return nil
-	}, txOptions)
-
-	if err != nil {
-		return c.JSON(http.StatusOK, epr.APIError(err.Error()))
+	}, txOptions); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return c.JSON(http.StatusOK, epr.APIError("指定されたメニューがありません(menu is not exist)"))
+		} else {
+			return c.JSON(http.StatusOK, epr.APIError("エラーが発生しました(error occurred)"))
+		}
 	}
 
-	return c.JSON(http.StatusOK, result)
+	return c.JSON(http.StatusOK, r)
 }
