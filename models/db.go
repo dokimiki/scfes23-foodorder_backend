@@ -4,95 +4,61 @@ import (
 	"time"
 )
 
-type Store struct {
-	ID        uint32    `gorm:"primaryKey;auto_increment"`
-	StrID     string    `gorm:"unique;not null"`
-	Name      string    `gorm:"not null"`
-	Location  string    `gorm:"not null"`
-	Features  string    `gorm:"not null"`
-	CreatedAt time.Time `gorm:"not null;default:CURRENT_TIMESTAMP"`
-}
-
 type Menu struct {
-	ID         uint32    `gorm:"primaryKey;auto_increment"`
-	StrID      string    `gorm:"not null"`
-	StoreStrID string    `gorm:"not null"`
-	Name       string    `gorm:"not null"`
-	Features   string    `gorm:"not null"`
-	ImgURL     string    `gorm:"not null"`
-	TimeToMake string    `gorm:"not null"`
-	CreatedAt  time.Time `gorm:"not null;default:CURRENT_TIMESTAMP"`
+	ID     uint32 `gorm:"primaryKey"`
+	Name   string `gorm:"not null"`
+	Price  int    `gorm:"not null"`
+	ImgURL string `gorm:"not null"`
 }
 
 type MenuAllergen struct {
-	MenuID    uint32    `gorm:"primaryKey"`
-	Ebi       string    `gorm:"not null"`
-	Kani      string    `gorm:"not null"`
-	Komugi    string    `gorm:"not null"`
-	Kurumi    string    `gorm:"not null"`
-	Milk      string    `gorm:"not null"`
-	Peanut    string    `gorm:"not null"`
-	Soba      string    `gorm:"not null"`
-	Tamago    string    `gorm:"not null"`
-	CreatedAt time.Time `gorm:"not null;default:CURRENT_TIMESTAMP"`
+	MenuID uint32 `gorm:"primaryKey"`
+	Ebi    string `gorm:"not null"`
+	Kani   string `gorm:"not null"`
+	Komugi string `gorm:"not null"`
+	Kurumi string `gorm:"not null"`
+	Milk   string `gorm:"not null"`
+	Peanut string `gorm:"not null"`
+	Soba   string `gorm:"not null"`
+	Tamago string `gorm:"not null"`
 }
 
 type StoreKeeper struct {
-	ID         uint32    `gorm:"primaryKey;auto_increment"`
-	Token      string    `gorm:"unique;not null"`
-	IsApproved bool      `gorm:"not null;default:false"`
-	StoreStrID string    `gorm:"not null"`
-	Permission string    `gorm:"not null"`
-	CreatedAt  time.Time `gorm:"not null;default:CURRENT_TIMESTAMP"`
+	ID         uint32 `gorm:"primaryKey"`
+	Token      string `gorm:"unique;not null"`
+	IsApproved bool   `gorm:"not null;default:false"`
 }
 
 type User struct {
-	ID          uint32    `gorm:"primaryKey;auto_increment"`
-	Token       string    `gorm:"unique;not null"`
-	CancelCount int       `gorm:"not null;default:0"`
-	CreatedAt   time.Time `gorm:"not null;default:CURRENT_TIMESTAMP"`
-}
-
-type Order struct {
-	ID               uint32     `gorm:"primaryKey;auto_increment"`
-	UserToken        string     `gorm:"not null"`
-	StoreStrID       string     `gorm:"not null"`
-	OrderStatus      string     `gorm:"not null;default:'choosing'"`
-	IsCanceled       bool       `gorm:"not null;default:false"`
-	IsPaid           bool       `gorm:"not null;default:false"`
-	TimeOfCompletion *time.Time `gorm:"default:null"`
-	CreatedAt        time.Time  `gorm:"not null;default:CURRENT_TIMESTAMP"`
-	DeletedAt        *time.Time `gorm:"default:null"`
-}
-
-type OrderItem struct {
-	ID        uint32    `gorm:"primaryKey;auto_increment"`
-	OrderID   uint32    `gorm:"not null"`
-	MenuID    uint32    `gorm:"not null"`
-	Quantity  int       `gorm:"not null"`
+	ID        uint32    `gorm:"primaryKey"`
+	Token     string    `gorm:"unique;not null"`
 	CreatedAt time.Time `gorm:"not null;default:CURRENT_TIMESTAMP"`
 }
 
-type StoreKeeperRequest struct {
-	ID            uint32     `gorm:"primaryKey;auto_increment"`
-	StoreKeeperID uint32     `gorm:"not null"`
-	RequestToken  string     `gorm:"unique;not null"`
-	CreatedAt     time.Time  `gorm:"not null;default:CURRENT_TIMESTAMP"`
-	DeletedAt     *time.Time `gorm:"default:null"`
-}
-
 type MenuDetail struct {
-	MenuID      uint32    `gorm:"primaryKey"`
-	Remaining   int       `gorm:"not null"`
-	TicketPrice int       `gorm:"not null"`
-	Discount    int       `gorm:"not null;default:0"`
-	CreatedAt   time.Time `gorm:"not null;default:CURRENT_TIMESTAMP"`
-	UpdatedAt   time.Time `gorm:"not null;default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"`
+	MenuID    uint32 `gorm:"primaryKey"`
+	Remaining int    `gorm:"not null"`
+	Discount  int    `gorm:"not null;default:0"`
 }
 
-type Ticket struct {
-	ID                uint32 `gorm:"primaryKey;auto_increment"`
-	YenPricePerTicket int    `gorm:"not null"`
+type Order struct {
+	ID               uint32 `gorm:"primaryKey"`
+	UserID           uint32 `gorm:"not null"`
+	OrderStatus      string `gorm:"not null;default:choosing"`
+	NumberTag        int    `gorm:"not null;default:0"`
+	IsCanceled       bool   `gorm:"not null;default:false"`
+	IsPaid           bool   `gorm:"not null;default:false"`
+	IsMobileOrder    bool   `gorm:"not null;default:false"`
+	IsInvitationSent bool   `gorm:"not null;default:false"`
+	TimeOfCompletion time.Time
+	CreatedAt        time.Time `gorm:"not null;default:CURRENT_TIMESTAMP"`
+}
+
+type OrderItem struct {
+	ID       uint32 `gorm:"primaryKey"`
+	OrderID  uint32 `gorm:"not null"`
+	MenuID   uint32 `gorm:"not null"`
+	Quantity int    `gorm:"not null"`
 }
 
 type Barcode struct {
