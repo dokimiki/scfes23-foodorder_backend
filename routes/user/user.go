@@ -1,4 +1,4 @@
-package user_route
+package ur
 
 import (
 	"net/http"

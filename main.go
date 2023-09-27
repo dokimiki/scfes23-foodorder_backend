@@ -4,14 +4,14 @@ import (
 	"net/http"
 	"os"
 
-	epr "github.com/dokimiki/scfes23-foodorder_backend/libs/errorPayloadResponse"
-	stores_route "github.com/dokimiki/scfes23-foodorder_backend/routes/stores"
-	ticket_route "github.com/dokimiki/scfes23-foodorder_backend/routes/ticket"
-	user_route "github.com/dokimiki/scfes23-foodorder_backend/routes/user"
 	"github.com/joho/godotenv"
-	"github.com/labstack/echo-jwt/v4"
+	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+
+	epr "github.com/dokimiki/scfes23-foodorder_backend/libs/errorPayloadResponse"
+	cr "github.com/dokimiki/scfes23-foodorder_backend/routes/common"
+	ur "github.com/dokimiki/scfes23-foodorder_backend/routes/user"
 )
 
 func Hello(c echo.Context) error {
@@ -35,30 +35,18 @@ func main() {
 	e.IPExtractor = echo.ExtractIPFromXFFHeader()
 	v1.GET("", Hello)
 
-	ticket := v1.Group("/ticket")
-	ticket.GET("/price", ticket_route.GetPrice)
-
-	stores := v1.Group("/stores/:store_id")
-	stores.GET("", stores_route.GetStoreInfo)
-	stores.GET("/menus", stores_route.GetMenuList)
-	stores.GET("/menus/:menu_id", stores_route.GetMenuDetail)
+	/* Common */
+	common := v1.Group("/common")
+	common.GET("/menus", cr.GetMenuItems)
+	common.GET("/allergens/:menuId", cr.GetAllergen)
+	/* User */
 
 	user := v1.Group("/user")
-	user.POST("/signup", user_route.SignUp)
+	user.POST("/signup", ur.SignUp)
 
 	userWithAuth := user.Group("/me")
 	userWithAuth.Use(echojwt.JWT([]byte(signature)))
-	userWithAuth.GET("", user_route.UserInfo)
-	userWithAuth.GET("/orders/:store_id", user_route.GetOrder)
-	userWithAuth.GET("/orders/:store_id/items", user_route.GetOrderItems)
-	userWithAuth.POST("/orders/:store_id/cancel", user_route.CancelOrder)
-
-	storekeeper := v1.Group("/storekeeper")
-	storekeeper.POST("/request", Hello) // TODO: Replace HELLO to request storekeeper
-
-	storekeeper.Use(echojwt.JWT([]byte(signature)))
-	storekeeper.POST("/approve", Hello) // TODO: Replace HELLO to approve storekeeper
-	storekeeper.GET("/me", Hello)       // TODO: Replace HELLO to get storekeeper info
+	userWithAuth.GET("", ur.UserInfo)
 
 	e.Logger.Fatal(e.Start(":3030"))
 }
