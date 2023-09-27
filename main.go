@@ -11,7 +11,6 @@ import (
 
 	epr "github.com/dokimiki/scfes23-foodorder_backend/libs/errorPayloadResponse"
 	cr "github.com/dokimiki/scfes23-foodorder_backend/routes/common"
-	ur "github.com/dokimiki/scfes23-foodorder_backend/routes/user"
 )
 
 func Hello(c echo.Context) error {
@@ -42,11 +41,9 @@ func main() {
 	/* User */
 
 	user := v1.Group("/user")
-	user.POST("/signup", ur.SignUp)
 
 	userWithAuth := user.Group("/me")
 	userWithAuth.Use(echojwt.JWT([]byte(signature)))
-	userWithAuth.GET("", ur.UserInfo)
 
 	e.Logger.Fatal(e.Start(":3030"))
 }
