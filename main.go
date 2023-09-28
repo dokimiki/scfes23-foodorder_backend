@@ -25,10 +25,7 @@ func main() {
 	e := echo.New()
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
-	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"https://ncth-app.jp/"},
-		AllowMethods: []string{http.MethodGet, http.MethodPut, http.MethodPost, http.MethodDelete},
-	}))
+	e.Use(middleware.CORS())
 	e.Use(middleware.GzipWithConfig(middleware.GzipConfig{
 		Level: 1,
 	}))
