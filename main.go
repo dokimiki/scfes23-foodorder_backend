@@ -52,5 +52,7 @@ func main() {
 	userWithAuth.GET("/drawinvitelots", ur.DrawInviteLots)
 	userWithAuth.GET("/getcouponitemids", ur.GetCouponItemIds)
 	userWithAuth.GET("/getcompletestate", ur.GetCompleteState)
+	userWithAuth.GET("/sendcartdata", ur.SendCartData)
+
 	e.Logger.Fatal(e.StartTLS(":3939", "server.crt", "server.key"))
 }

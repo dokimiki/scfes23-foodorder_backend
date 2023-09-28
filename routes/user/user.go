@@ -1,6 +1,7 @@
 package ur
 
 import (
+	"encoding/json"
 	"math/rand"
 	"net/http"
 	"os"
@@ -271,4 +272,53 @@ func GetCompleteState(c echo.Context) error {
 			State: "Unknown",
 		})
 	}
+}
+
+func SendCartData(c echo.Context) error {
+	// カートを取得
+	cart := c.QueryParam("cart")
+
+	// カートをJSON形式に変換
+	cartItems := []types.CartItem{}
+	err := json.Unmarshal([]byte(cart), &cartItems)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, epr.APIError("カートのJSON形式が不正です。"))
+	}
+
+	// ユーザーIDを取得
+	jwtToken := c.Get("user").(*jwt.Token)
+	claims := jwtToken.Claims.(jwt.MapClaims)
+	token := claims["sub"].(string)
+
+	// ユーザー情報を取得
+	user := models.User{}
+	if err := database.DB.Where("token = ?", token).First(&user).Error; err != nil {
+		return c.JSON(http.StatusOK, epr.APIError("ユーザー情報が見つかりません。"))
+	}
+
+	// 注文を作成
+	order := models.Order{
+		UserID:        user.ID,
+		OrderStatus:   "ordered",
+		IsMobileOrder: true,
+	}
+	if err := database.DB.Create(&order).Error; err != nil {
+		return c.JSON(http.StatusOK, epr.APIError("注文の作成に失敗しました。"))
+	}
+
+	// 注文明細を作成
+	for _, cartItem := range cartItems {
+		// 注文明細を作成
+		menuId, _ := strconv.Atoi(cartItem.ID)
+		orderItem := models.OrderItem{
+			OrderID:  order.ID,
+			MenuID:   uint32(menuId),
+			Quantity: cartItem.Quantity,
+		}
+		if err := database.DB.Create(&orderItem).Error; err != nil {
+			return c.JSON(http.StatusOK, epr.APIError("注文明細の作成に失敗しました。"))
+		}
+	}
+
+	return c.JSON(http.StatusOK, true)
 }
