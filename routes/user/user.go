@@ -214,10 +214,15 @@ func DrawInviteLots(c echo.Context) error {
 
 func GetCouponItemIds(c echo.Context) error {
 	// クーポン種別とクーポンIDの対応表を取得
+	oneHundredCouponItemId := "16"
+	twoHundredCouponItemId := "17"
+	threeHundredCouponItemId := "18"
 	couponItemIds := types.CouponItemIds{
-		OneHundred:   "16",
-		TwoHundred:   "17",
-		ThreeHundred: "18",
+		None:         nil,
+		Zero:         nil,
+		OneHundred:   &oneHundredCouponItemId,
+		TwoHundred:   &twoHundredCouponItemId,
+		ThreeHundred: &threeHundredCouponItemId,
 	}
 
 	return c.JSON(http.StatusOK, couponItemIds)

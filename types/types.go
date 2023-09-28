@@ -20,11 +20,11 @@ type Coupon struct {
 }
 
 type CouponItemIds struct {
-	None         string `json:"none"`
-	Zero         string `json:"0"`
-	OneHundred   string `json:"100"`
-	TwoHundred   string `json:"200"`
-	ThreeHundred string `json:"300"`
+	None         *string `json:"none"`
+	Zero         *string `json:"0"`
+	OneHundred   *string `json:"100"`
+	TwoHundred   *string `json:"200"`
+	ThreeHundred *string `json:"300"`
 }
 
 type MenuItem struct {
