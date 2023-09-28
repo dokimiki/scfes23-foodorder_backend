@@ -388,11 +388,17 @@ func GetCompleteInfo(c echo.Context) error {
 	// リクエストヘッダーからJWTトークンを取得
 	jwtToken := c.Get("user").(*jwt.Token)
 	claims := jwtToken.Claims.(jwt.MapClaims)
-	userID := claims["sub"].(string)
+	token := claims["sub"].(string)
+
+	// ユーザー情報を取得
+	user := models.User{}
+	if err := database.DB.Where("token = ?", token).First(&user).Error; err != nil {
+		return c.JSON(http.StatusOK, epr.APIError("ユーザー情報が見つかりません。"))
+	}
 
 	// ユーザーの注文情報を取得
 	order := models.Order{}
-	err := database.DB.Where("user_id = ?", userID).First(&order).Error
+	err := database.DB.Where("user_id = ?", user.ID).First(&order).Error
 	if err != nil {
 		return c.JSON(http.StatusNotFound, epr.APIError("注文情報が見つかりません。"))
 	}
