@@ -305,8 +305,10 @@ func SendCartData(c echo.Context) error {
 
 	// ユーザーの注文状況を取得
 	userLatestOrder := models.Order{}
-	if err := database.DB.Where("user_id = ?", user.ID).First(&userLatestOrder).Error; err != nil && err.Error() != "record not found" {
+	if err := database.DB.Where("user_id = ?", user.ID).First(&userLatestOrder).Error; err == nil {
 		return c.JSON(http.StatusOK, epr.APIError("すでに注文が完了しています。"))
+	} else if err.Error() != "record not found" {
+		return c.JSON(http.StatusOK, epr.APIError("注文情報の取得に失敗しました。"))
 	}
 
 	// time_of_completionをほかの注文状況から求める
@@ -316,7 +318,7 @@ func SendCartData(c echo.Context) error {
 	if err := database.DB.Where("order_status = ?", "ordered").Order("created_at desc").First(&latestOrder).Error; err != nil {
 		latestCompletionTime = time.Now()
 	} else {
-		latestCompletionTime = latestOrder.CreatedAt
+		latestCompletionTime = latestOrder.TimeOfCompletion
 	}
 
 	timeOfCompletion := latestCompletionTime
