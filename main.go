@@ -10,6 +10,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 
 	epr "github.com/dokimiki/scfes23-foodorder_backend/libs/errorPayloadResponse"
+	ar "github.com/dokimiki/scfes23-foodorder_backend/routes/admin"
 	cr "github.com/dokimiki/scfes23-foodorder_backend/routes/common"
 	ur "github.com/dokimiki/scfes23-foodorder_backend/routes/user"
 )
@@ -52,8 +53,12 @@ func main() {
 	userWithAuth.GET("/drawinvitelots", ur.DrawInviteLots)
 	userWithAuth.GET("/getcouponitemids", ur.GetCouponItemIds)
 	userWithAuth.GET("/getcompletestate", ur.GetCompleteState)
-	userWithAuth.GET("/sendcartdata", ur.SendCartData)
+	userWithAuth.POST("/sendcartdata", ur.SendCartData)
 	userWithAuth.GET("/getcompleteinfo", ur.GetCompleteInfo)
+
+	/* Admin */
+	admin := v1.Group("/admin")
+	admin.GET("/getpotatodata", ar.GetPotatoData)
 
 	e.Logger.Fatal(e.StartTLS(":3939", "server.crt", "server.key"))
 }
