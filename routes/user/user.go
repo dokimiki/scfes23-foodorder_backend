@@ -159,3 +159,66 @@ func DrawBulkLots(c echo.Context) error {
 	}
 	return c.JSON(http.StatusOK, response)
 }
+
+func DrawInviteLots(c echo.Context) error {
+	// ユーザーIDを取得
+	jwtToken := c.Get("user").(*jwt.Token)
+	claims := jwtToken.Claims.(jwt.MapClaims)
+	token := claims["sub"].(string)
+
+	// ユーザー情報を取得
+	user := models.User{}
+	if err := database.DB.Where("token = ?", token).First(&user).Error; err != nil {
+		return c.JSON(http.StatusOK, epr.APIError("ユーザーIDが見つかりません。"))
+	}
+
+	// ユーザーのinviteCouponを取得
+	inviteCoupon := user.InviteCoupon
+
+	// inviteCouponがnoneの場合
+	if inviteCoupon == "none" {
+		// ランダムにkindを生成
+		n := rand.Intn(100)
+		var kind string
+
+		if n < 20 { // 20%
+			kind = "100"
+		} else if n < 26 { // 6%
+			kind = "200"
+		} else if n < 30 { // 4%
+			kind = "300"
+		} else {
+			kind = "0"
+		}
+
+		// inviteCouponを更新
+		user.InviteCoupon = kind
+		if err := database.DB.Save(&user).Error; err != nil {
+			return c.JSON(http.StatusOK, epr.APIError("inviteCouponの更新に失敗しました。"))
+		}
+
+		// 生成したkindを返す
+		response := types.Coupon{
+			Kind: kind,
+		}
+		return c.JSON(http.StatusOK, response)
+	}
+
+	// inviteCouponがnoneでない場合
+	// そのまま返す
+	response := types.Coupon{
+		Kind: inviteCoupon,
+	}
+	return c.JSON(http.StatusOK, response)
+}
+
+func GetCouponItemIds(c echo.Context) error {
+	// クーポン種別とクーポンIDの対応表を取得
+	couponItemIds := types.CouponItemIds{
+		OneHundred:   "16",
+		TwoHundred:   "17",
+		ThreeHundred: "18",
+	}
+
+	return c.JSON(http.StatusOK, couponItemIds)
+}

@@ -49,6 +49,8 @@ func main() {
 	userWithAuth.Use(echojwt.JWT([]byte(signature)))
 	userWithAuth.GET("/signin", ur.SignIn)
 	userWithAuth.GET("/drawbulklots", ur.DrawBulkLots)
+	userWithAuth.GET("/drawinvitelots", ur.DrawInviteLots)
+	userWithAuth.GET("/getcouponitemids", ur.GetCouponItemIds)
 
 	e.Logger.Fatal(e.StartTLS(":3939", "server.crt", "server.key"))
 }
