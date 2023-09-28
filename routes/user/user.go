@@ -1,8 +1,7 @@
 package ur
 
 import (
-	"crypto/rand"
-	"math/big"
+	"math/rand"
 	"net/http"
 	"os"
 	"strconv"
@@ -110,6 +109,7 @@ func InviteRegistry(c echo.Context) error {
 }
 
 func DrawBulkLots(c echo.Context) error {
+	rand.Seed(time.Now().UnixNano())
 	// ユーザーIDを取得
 	jwtToken := c.Get("user").(*jwt.Token)
 	claims := jwtToken.Claims.(jwt.MapClaims)
@@ -127,17 +127,14 @@ func DrawBulkLots(c echo.Context) error {
 	// bulk_couponがnoneの場合
 	if bulkCoupon == "none" {
 		// ランダムにkindを生成
-		n, err := rand.Int(rand.Reader, big.NewInt(100))
-		if err != nil {
-			panic(err)
-		}
+		n := rand.Intn(100)
 		var kind string
 
-		if n.Int64() < 20 { // 20%
+		if n < 20 { // 20%
 			kind = "100"
-		} else if n.Int64() < 26 { // 6%
+		} else if n < 26 { // 6%
 			kind = "200"
-		} else if n.Int64() < 30 { // 4%
+		} else if n < 30 { // 4%
 			kind = "300"
 		} else {
 			kind = "0"
