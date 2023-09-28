@@ -2,7 +2,6 @@ package ur
 
 import (
 	"encoding/json"
-	"fmt"
 	"math"
 	"math/rand"
 	"net/http"
@@ -304,15 +303,11 @@ func SendCartData(c echo.Context) error {
 		return c.JSON(http.StatusOK, epr.APIError("ユーザー情報が見つかりません。"))
 	}
 
-	fmt.Println("test1")
-
 	// ユーザーの注文状況を取得
 	userLatestOrder := models.Order{}
-	if err := database.DB.Where("user_id = ?", user.ID).Order("created_at desc").First(&userLatestOrder).Error; err.Error() != "record not found" {
+	if err := database.DB.Where("user_id = ?", user.ID).First(&userLatestOrder).Error; err != nil && err.Error() != "record not found" {
 		return c.JSON(http.StatusOK, epr.APIError("すでに注文が完了しています。"))
 	}
-
-	fmt.Println("test2")
 
 	// time_of_completionをほかの注文状況から求める
 	// 注文情報を取得
@@ -323,8 +318,6 @@ func SendCartData(c echo.Context) error {
 	} else {
 		latestCompletionTime = latestOrder.CreatedAt
 	}
-
-	fmt.Println("test3")
 
 	timeOfCompletion := latestCompletionTime
 	timeOfCompletion = timeOfCompletion.Add(time.Duration(math.Ceil(float64(cartItemsCount)/3)) * 4 * time.Minute)
@@ -340,8 +333,6 @@ func SendCartData(c echo.Context) error {
 		return c.JSON(http.StatusOK, epr.APIError("注文の作成に失敗しました。"))
 	}
 
-	fmt.Println("test4")
-
 	// 注文明細を作成
 	for _, cartItem := range cartItems {
 		// 注文明細を作成
@@ -355,8 +346,6 @@ func SendCartData(c echo.Context) error {
 			return c.JSON(http.StatusOK, epr.APIError("注文明細の作成に失敗しました。"))
 		}
 	}
-
-	fmt.Println("test5")
 
 	// ユーザーのisOrderをtrueにする
 	if err := database.DB.Model(&user).Update("isOrder", true).Error; err != nil {
