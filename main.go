@@ -45,6 +45,7 @@ func main() {
 
 	userWithAuth := user.Group("/me")
 	userWithAuth.Use(echojwt.JWT([]byte(signature)))
+	userWithAuth.GET("/signin", ur.SignIn)
 
 	e.Logger.Fatal(e.StartTLS(":3939", "server.crt", "server.key"))
 }
