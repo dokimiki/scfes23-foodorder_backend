@@ -1,6 +1,7 @@
 package ur
 
 import (
+	"fmt"
 	"math/rand"
 	"net/http"
 	"os"
@@ -139,7 +140,7 @@ func DrawBulkLots(c echo.Context) error {
 		} else {
 			kind = "0"
 		}
-		fmt.println(n)
+		fmt.Println(n)
 
 		// bulk_couponを更新
 		user.BulkCoupon = kind
