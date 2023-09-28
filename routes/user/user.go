@@ -282,7 +282,7 @@ func GetCompleteState(c echo.Context) error {
 
 func SendCartData(c echo.Context) error {
 	// カートを取得
-	cart := c.QueryParam("cart")
+	cart := c.Param("cart")
 
 	// ユーザーIDを取得
 	jwtToken := c.Get("user").(*jwt.Token)
