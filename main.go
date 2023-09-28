@@ -43,7 +43,7 @@ func main() {
 	/* User */
 	user := v1.Group("/user")
 	user.POST("/signup", ur.SignUp)
-	user.POST("/inviteregistry", ur.InviteRegistry)
+	user.POST("/inviteregistry/:userId", ur.InviteRegistry)
 
 	userWithAuth := user.Group("/me")
 	userWithAuth.Use(echojwt.JWT([]byte(signature)))
