@@ -2,6 +2,7 @@ package ur
 
 import (
 	"encoding/json"
+	"math"
 	"math/rand"
 	"net/http"
 	"os"
@@ -285,6 +286,12 @@ func SendCartData(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, epr.APIError("カートのJSON形式が不正です。"))
 	}
 
+	// カートの中の商品の数を数える
+	var cartItemsCount int
+	for _, cartItem := range cartItems {
+		cartItemsCount += cartItem.Quantity
+	}
+
 	// ユーザーIDを取得
 	jwtToken := c.Get("user").(*jwt.Token)
 	claims := jwtToken.Claims.(jwt.MapClaims)
@@ -296,11 +303,31 @@ func SendCartData(c echo.Context) error {
 		return c.JSON(http.StatusOK, epr.APIError("ユーザー情報が見つかりません。"))
 	}
 
+	// ユーザーの注文状況を取得
+	userLatestOrder := models.Order{}
+	if err := database.DB.Where("user_id = ?", user.ID).Order("created_at desc").First(&userLatestOrder).Error; err.Error() != "record not found" {
+		return c.JSON(http.StatusOK, epr.APIError("すでに注文が完了しています。"))
+	}
+
+	// time_of_completionをほかの注文状況から求める
+	// 注文情報を取得
+	var latestCompletionTime time.Time
+	latestOrder := models.Order{}
+	if err := database.DB.Where("order_status = ?", "ordered").Order("created_at desc").First(&latestOrder).Error; err != nil {
+		latestCompletionTime = time.Now()
+	} else {
+		latestCompletionTime = latestOrder.CreatedAt
+	}
+
+	timeOfCompletion := latestCompletionTime
+	timeOfCompletion = timeOfCompletion.Add(time.Duration(math.Ceil(float64(cartItemsCount)/3)) * 4 * time.Minute)
+
 	// 注文を作成
 	order := models.Order{
-		UserID:        user.ID,
-		OrderStatus:   "ordered",
-		IsMobileOrder: true,
+		UserID:           user.ID,
+		OrderStatus:      "ordered",
+		IsMobileOrder:    true,
+		TimeOfCompletion: timeOfCompletion,
 	}
 	if err := database.DB.Create(&order).Error; err != nil {
 		return c.JSON(http.StatusOK, epr.APIError("注文の作成に失敗しました。"))
@@ -320,5 +347,11 @@ func SendCartData(c echo.Context) error {
 		}
 	}
 
+	// ユーザーのisOrderをtrueにする
+	if err := database.DB.Model(&user).Update("isOrder", true).Error; err != nil {
+		return c.JSON(http.StatusOK, epr.APIError("ユーザー情報の更新に失敗しました。"))
+	}
+
+	// 注文情報を返却
 	return c.JSON(http.StatusOK, true)
 }
