@@ -348,7 +348,7 @@ func SendCartData(c echo.Context) error {
 	}
 
 	// ユーザーのisOrderをtrueにする
-	if err := database.DB.Model(&user).Update("isOrder", true).Error; err != nil {
+	if err := database.DB.Model(&user).Update("isOrdered", true).Error; err != nil {
 		return c.JSON(http.StatusOK, epr.APIError("ユーザー情報の更新に失敗しました。"))
 	}
 
