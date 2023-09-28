@@ -1,6 +1,8 @@
 package ur
 
 import (
+	"crypto/rand"
+	"math/big"
 	"net/http"
 	"os"
 	"strconv"
@@ -104,5 +106,60 @@ func InviteRegistry(c echo.Context) error {
 
 	// ユーザーのisInvitationを返す
 	response := true
+	return c.JSON(http.StatusOK, response)
+}
+
+func DrawBulkLots(c echo.Context) error {
+	// ユーザーIDを取得
+	jwtToken := c.Get("user").(*jwt.Token)
+	claims := jwtToken.Claims.(jwt.MapClaims)
+	token := claims["sub"].(string)
+
+	// ユーザー情報を取得
+	user := models.User{}
+	if err := database.DB.Where("token = ?", token).First(&user).Error; err != nil {
+		return c.JSON(http.StatusOK, epr.APIError("ユーザーIDが見つかりません。"))
+	}
+
+	// ユーザーのbulk_couponを取得
+	bulkCoupon := user.BulkCoupon
+
+	// bulk_couponがnoneの場合
+	if bulkCoupon == "none" {
+		// ランダムにkindを生成
+		n, err := rand.Int(rand.Reader, big.NewInt(100))
+		if err != nil {
+			panic(err)
+		}
+		var kind string
+
+		if n.Int64() < 20 { // 20%
+			kind = "100"
+		} else if n.Int64() < 26 { // 6%
+			kind = "200"
+		} else if n.Int64() < 30 { // 4%
+			kind = "300"
+		} else {
+			kind = "0"
+		}
+
+		// bulk_couponを更新
+		user.BulkCoupon = kind
+		if err := database.DB.Save(&user).Error; err != nil {
+			return c.JSON(http.StatusOK, epr.APIError("bulk_couponの更新に失敗しました。"))
+		}
+
+		// 生成したkindを返す
+		response := types.Coupon{
+			Kind: kind,
+		}
+		return c.JSON(http.StatusOK, response)
+	}
+
+	// bulk_couponがnoneでない場合
+	// そのまま返す
+	response := types.Coupon{
+		Kind: bulkCoupon,
+	}
 	return c.JSON(http.StatusOK, response)
 }
