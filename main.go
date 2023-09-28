@@ -28,7 +28,6 @@ func main() {
 		Level: 1,
 	}))
 	e.Use(middleware.Secure())
-	// e.Pre(middleware.HTTPSRedirect()) // https化した際に有効化する
 
 	v1 := e.Group("/v1")
 	e.IPExtractor = echo.ExtractIPFromXFFHeader()
@@ -45,5 +44,5 @@ func main() {
 	userWithAuth := user.Group("/me")
 	userWithAuth.Use(echojwt.JWT([]byte(signature)))
 
-	e.Logger.Fatal(e.Start(":3939"))
+	e.Logger.Fatal(e.StartTLS(":3939", "server.crt", "server.key"))
 }
