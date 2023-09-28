@@ -59,7 +59,23 @@ func SignIn(c echo.Context) error {
 	// ユーザー情報を取得
 	user := models.User{}
 	if err := database.DB.Where("token = ?", token).First(&user).Error; err != nil {
-		return c.JSON(http.StatusOK, epr.APIError("ユーザーIDが見つかりません。"))
+		// ユーザーIDを生成
+		token := gt.GenUserToken()
+		userID := issueUserJWT(token)
+
+		// ユーザー情報を保存
+		user := models.User{
+			Token: token,
+		}
+		if err := database.DB.Create(&user).Error; err != nil {
+			return c.JSON(http.StatusOK, epr.APIError("ユーザー登録に失敗しました。"))
+		}
+
+		// ユーザーIDを返す
+		response := types.User{
+			ID: userID,
+		}
+		return c.JSON(http.StatusOK, response)
 	}
 
 	// ユーザー情報を返す
@@ -67,5 +83,26 @@ func SignIn(c echo.Context) error {
 		ID:        strconv.FormatUint(uint64(user.ID), 10),
 		IsOrdered: user.IsOrdered,
 	}
+	return c.JSON(http.StatusOK, response)
+}
+
+func InviteRegistry(c echo.Context) error {
+	// ユーザーIDを取得
+	userId := c.Param("userId")
+
+	// ユーザー情報を取得
+	user := models.User{}
+	if err := database.DB.Where("token = ?", userId).First(&user).Error; err != nil {
+		return c.JSON(http.StatusOK, epr.APIError("ユーザーIDが見つかりません。"))
+	}
+
+	// ユーザーのisInvitationをtrueに更新
+	user.IsInvitation = true
+	if err := database.DB.Save(&user).Error; err != nil {
+		return c.JSON(http.StatusOK, epr.APIError("ユーザーの招待状態を更新できませんでした。"))
+	}
+
+	// ユーザーのisInvitationを返す
+	response := true
 	return c.JSON(http.StatusOK, response)
 }
