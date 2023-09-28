@@ -23,10 +23,11 @@ func GetMenuItems(c echo.Context) error {
 	response := []types.MenuItem{}
 	for _, menu := range dbResult {
 		response = append(response, types.MenuItem{
-			ID:    strconv.FormatUint(uint64(menu.ID), 10),
-			Name:  menu.Name,
-			Price: menu.Price,
-			Image: menu.ImgUrl,
+			ID:     strconv.FormatUint(uint64(menu.ID), 10),
+			Name:   menu.Name,
+			Price:  menu.Price,
+			Image:  menu.ImgUrl,
+			IsShow: menu.IsShow,
 		})
 	}
 
