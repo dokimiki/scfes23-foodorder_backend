@@ -419,16 +419,25 @@ func GetCompleteInfo(c echo.Context) error {
 		})
 	}
 
-	// バーコードを生成
-	barcode := genBarcode()
+	// バーコードを取得
+	var barcode string
+	getBarcode := models.Barcode{}
+	if err := database.DB.Where("order_id = ?", order.ID).First(&getBarcode).Error; err != nil && err.Error() != "record not found" {
+		return c.JSON(http.StatusInternalServerError, epr.APIError("バーコードの取得に失敗しました。"))
+	} else if (err != nil && err.Error() == "record not found") || getBarcode.BarcodeData == "" {
+		// バーコードを生成
+		barcode := genBarcode()
 
-	// バーコードを保存
-	barcodeData := models.Barcode{
-		BarcodeData: barcode,
-		OrderID:     order.ID,
-	}
-	if err := database.DB.Save(&barcodeData).Error; err != nil {
-		return c.JSON(http.StatusInternalServerError, epr.APIError("バーコードの保存に失敗しました。"))
+		// バーコードを保存
+		barcodeData := models.Barcode{
+			BarcodeData: barcode,
+			OrderID:     order.ID,
+		}
+		if err := database.DB.Save(&barcodeData).Error; err != nil {
+			return c.JSON(http.StatusInternalServerError, epr.APIError("バーコードの保存に失敗しました。"))
+		}
+	} else {
+		barcode = getBarcode.BarcodeData
 	}
 
 	// 完了情報を返却
