@@ -1,8 +1,10 @@
 package ar
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
+	"time"
 
 	epr "github.com/dokimiki/scfes23-foodorder_backend/libs/errorPayloadResponse"
 	"github.com/dokimiki/scfes23-foodorder_backend/models"
@@ -81,4 +83,41 @@ func GetCartDataFromOrderCode(c echo.Context) error {
 
 	// JSONで返す
 	return c.JSON(http.StatusOK, response)
+}
+
+func sendOrderData(c echo.Context) error {
+	// cartデータをJSONから構造体に変換する
+
+	cart := c.QueryParam("cart")
+	// カートをJSON形式に変換
+	cartItems := []types.CartItem{}
+
+	err := json.Unmarshal([]byte(cart), &cartItems)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, epr.APIError("カートのJSON形式が不正です。"))
+	}
+
+	// order情報を作成する
+	var order models.Order
+	order.BarcodeData = c.Param("orderCode")
+	order.ReceptionTime = time.Now()
+	order.CompletionTime = time.Now()
+	order.Qty = 0
+
+	// cart情報をorder情報に追加する
+	for _, cartItem := range cart {
+		order.Qty += cartItem.Quantity
+		order.Items = append(order.Items, models.OrderItem{
+			MenuID:   cartItem.ID,
+			Quantity: cartItem.Quantity,
+		})
+	}
+
+	// order情報をDBに保存する
+	if err := database.DB.Save(&order).Error; err != nil {
+		return c.JSON(http.StatusInternalServerError, epr.APIError("order情報の保存に失敗しました。"))
+	}
+
+	// 注文完了
+	return c.JSON(http.StatusOK, true)
 }
