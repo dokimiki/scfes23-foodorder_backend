@@ -422,6 +422,15 @@ func GetCompleteInfo(c echo.Context) error {
 	// バーコードを生成
 	barcode := genBarcode()
 
+	// バーコードを保存
+	barcodeData := models.Barcode{
+		BarcodeData: barcode,
+		OrderID:     order.ID,
+	}
+	if err := database.DB.Save(&barcodeData).Error; err != nil {
+		return c.JSON(http.StatusInternalServerError, epr.APIError("バーコードの保存に失敗しました。"))
+	}
+
 	// 完了情報を返却
 	info := types.CompleteInfo{
 		Barcode:      barcode,

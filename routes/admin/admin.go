@@ -56,3 +56,29 @@ func GetPotatoData(c echo.Context) error {
 	// JSONで返す
 	return c.JSON(http.StatusOK, response)
 }
+
+func GetCartDataFromOrderCode(c echo.Context) error {
+	// orderCodeからorder情報を取得する
+	var order models.Order
+	if err := database.DB.Where("barcode_data = ?", c.Param("orderCode")).First(&order).Error; err != nil {
+		return c.JSON(http.StatusOK, epr.APIError("注文情報の取得でエラーが発生しました。"))
+	}
+
+	// order情報からorder_item情報を取得する
+	var orderItems []models.OrderItem
+	if err := database.DB.Where("order_id = ?", order.ID).Find(&orderItems).Error; err != nil {
+		return c.JSON(http.StatusOK, epr.APIError("注文情報の取得でエラーが発生しました。"))
+	}
+
+	// レスポンスを作成する
+	response := []types.CartItem{}
+	for _, orderItem := range orderItems {
+		response = append(response, types.CartItem{
+			ID:       strconv.FormatUint(uint64(orderItem.MenuID), 10),
+			Quantity: orderItem.Quantity,
+		})
+	}
+
+	// JSONで返す
+	return c.JSON(http.StatusOK, response)
+}
