@@ -53,6 +53,7 @@ func main() {
 	userWithAuth.GET("/getcouponitemids", ur.GetCouponItemIds)
 	userWithAuth.GET("/getcompletestate", ur.GetCompleteState)
 	userWithAuth.GET("/sendcartdata", ur.SendCartData)
+	userWithAuth.GET("/getcompleteinfo", ur.GetCompleteInfo)
 
 	e.Logger.Fatal(e.StartTLS(":3939", "server.crt", "server.key"))
 }

@@ -174,6 +174,11 @@ func DrawInviteLots(c echo.Context) error {
 		return c.JSON(http.StatusOK, epr.APIError("ユーザーIDが見つかりません。"))
 	}
 
+	// ユーザーが誰かを招待したかを調べる
+	if !user.IsInvitation {
+		return c.JSON(http.StatusOK, epr.APIError("QRコードをほかの人に読み込んでもらってください。"))
+	}
+
 	// ユーザーのinviteCouponを取得
 	inviteCoupon := user.InviteCoupon
 
@@ -356,4 +361,66 @@ func SendCartData(c echo.Context) error {
 
 	// 注文情報を返却
 	return c.JSON(http.StatusOK, true)
+}
+
+func genBarcode() string {
+	const length = 20
+
+	var barcode string
+
+	for i := 0; i < length; i++ {
+		n := rand.Intn(10)
+
+		if i == 0 {
+			n = 3
+		}
+		if i == 1 {
+			n = 9
+		}
+
+		barcode += strconv.Itoa(n)
+	}
+
+	return barcode
+}
+
+func GetCompleteInfo(c echo.Context) error {
+	// リクエストヘッダーからJWTトークンを取得
+	jwtToken := c.Get("user").(*jwt.Token)
+	claims := jwtToken.Claims.(jwt.MapClaims)
+	userID := claims["sub"].(string)
+
+	// ユーザーの注文情報を取得
+	order := models.Order{}
+	err := database.DB.Where("user_id = ?", userID).First(&order).Error
+	if err != nil {
+		return c.JSON(http.StatusNotFound, epr.APIError("注文情報が見つかりません。"))
+	}
+
+	// 注文明細情報を取得
+	items := []models.OrderItem{}
+	err = database.DB.Where("order_id = ?", order.ID).Find(&items).Error
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, epr.APIError("注文明細の取得に失敗しました。"))
+	}
+
+	// 注文明細情報を整形
+	var cartItems []types.CartItem
+	for _, item := range items {
+		cartItems = append(cartItems, types.CartItem{
+			ID:       strconv.FormatUint(uint64(item.MenuID), 10),
+			Quantity: item.Quantity,
+		})
+	}
+
+	// バーコードを生成
+	barcode := genBarcode()
+
+	// 完了情報を返却
+	info := types.CompleteInfo{
+		Barcode:      barcode,
+		CompleteTime: order.TimeOfCompletion,
+		Items:        cartItems,
+	}
+	return c.JSON(http.StatusOK, info)
 }
