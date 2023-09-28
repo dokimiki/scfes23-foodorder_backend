@@ -45,5 +45,5 @@ func main() {
 	userWithAuth := user.Group("/me")
 	userWithAuth.Use(echojwt.JWT([]byte(signature)))
 
-	e.Logger.Fatal(e.Start(":3030"))
+	e.Logger.Fatal(e.Start(":3939"))
 }
