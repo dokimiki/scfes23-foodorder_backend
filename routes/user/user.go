@@ -234,9 +234,18 @@ func GetCompleteState(c echo.Context) error {
 	claims := jwtToken.Claims.(jwt.MapClaims)
 	token := claims["sub"].(string)
 
+	// ユーザー情報を取得
+	user := models.User{}
+	if err := database.DB.Where("token = ?", token).First(&user).Error; err != nil {
+		return c.JSON(http.StatusOK, epr.APIError("ユーザー情報が見つかりません。"))
+	}
+
+	// ユーザーIDを取得
+	userId := user.ID
+
 	// ユーザーの注文情報を取得
 	order := models.Order{}
-	if err := database.DB.Where("user_id = ?", token).First(&order).Error; err != nil {
+	if err := database.DB.Where("user_id = ?", userId).First(&order).Error; err != nil {
 		return c.JSON(http.StatusOK, epr.APIError("注文情報が見つかりません。"))
 	}
 
