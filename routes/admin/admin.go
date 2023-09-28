@@ -59,14 +59,14 @@ func GetPotatoData(c echo.Context) error {
 
 func GetCartDataFromOrderCode(c echo.Context) error {
 	// orderCodeからorder情報を取得する
-	var order models.Order
-	if err := database.DB.Where("barcode_data = ?", c.Param("orderCode")).First(&order).Error; err != nil {
+	var barcode models.Barcode
+	if err := database.DB.Where("barcode_data = ?", c.Param("orderCode")).First(&barcode).Error; err != nil {
 		return c.JSON(http.StatusOK, epr.APIError("注文情報の取得でエラーが発生しました。"))
 	}
 
 	// order情報からorder_item情報を取得する
 	var orderItems []models.OrderItem
-	if err := database.DB.Where("order_id = ?", order.ID).Find(&orderItems).Error; err != nil {
+	if err := database.DB.Where("order_id = ?", barcode.OrderID).Find(&orderItems).Error; err != nil {
 		return c.JSON(http.StatusOK, epr.APIError("注文情報の取得でエラーが発生しました。"))
 	}
 
