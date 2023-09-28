@@ -51,6 +51,6 @@ func main() {
 	userWithAuth.GET("/drawbulklots", ur.DrawBulkLots)
 	userWithAuth.GET("/drawinvitelots", ur.DrawInviteLots)
 	userWithAuth.GET("/getcouponitemids", ur.GetCouponItemIds)
-
+	userWithAuth.GET("/getcompletestate", ur.GetCompleteState)
 	e.Logger.Fatal(e.StartTLS(":3939", "server.crt", "server.key"))
 }

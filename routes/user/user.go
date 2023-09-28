@@ -227,3 +227,39 @@ func GetCouponItemIds(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, couponItemIds)
 }
+
+func GetCompleteState(c echo.Context) error {
+	// ユーザーIDを取得
+	jwtToken := c.Get("user").(*jwt.Token)
+	claims := jwtToken.Claims.(jwt.MapClaims)
+	token := claims["sub"].(string)
+
+	// ユーザーの注文情報を取得
+	order := models.Order{}
+	if err := database.DB.Where("user_id = ?", token).First(&order).Error; err != nil {
+		return c.JSON(http.StatusOK, epr.APIError("注文情報が見つかりません。"))
+	}
+
+	// 注文状態を取得
+	orderStatus := order.OrderStatus
+
+	// 注文状態に応じて完了状態を返す
+	switch orderStatus {
+	case "ordered":
+		return c.JSON(http.StatusOK, types.CompleteState{
+			State: "Cooking",
+		})
+	case "cooked":
+		return c.JSON(http.StatusOK, types.CompleteState{
+			State: "Cooked",
+		})
+	case "received":
+		return c.JSON(http.StatusOK, types.CompleteState{
+			State: "Delivered",
+		})
+	default:
+		return c.JSON(http.StatusOK, types.CompleteState{
+			State: "Unknown",
+		})
+	}
+}
