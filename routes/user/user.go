@@ -109,7 +109,6 @@ func InviteRegistry(c echo.Context) error {
 }
 
 func DrawBulkLots(c echo.Context) error {
-	rand.Seed(time.Now().UnixNano())
 	// ユーザーIDを取得
 	jwtToken := c.Get("user").(*jwt.Token)
 	claims := jwtToken.Claims.(jwt.MapClaims)
