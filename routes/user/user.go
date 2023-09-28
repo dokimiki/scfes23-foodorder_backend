@@ -133,9 +133,9 @@ func DrawBulkLots(c echo.Context) error {
 
 		if n < 20 { // 20%
 			kind = "100"
-		} else if n < 26 { // 6%
+		} else if n < 27 { // 7%
 			kind = "200"
-		} else if n < 30 { // 4%
+		} else if n < 30 { // 3%
 			kind = "300"
 		} else {
 			kind = "0"
@@ -188,11 +188,11 @@ func DrawInviteLots(c echo.Context) error {
 		n := rand.Intn(100)
 		var kind string
 
-		if n < 20 { // 20%
+		if n < 25 { // 25%
 			kind = "100"
-		} else if n < 26 { // 6%
+		} else if n < 29 { // 4%
 			kind = "200"
-		} else if n < 30 { // 4%
+		} else if n < 30 { // 1%
 			kind = "300"
 		} else {
 			kind = "0"
