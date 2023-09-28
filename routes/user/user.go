@@ -3,6 +3,7 @@ package ur
 import (
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/dokimiki/scfes23-foodorder_backend/database"
@@ -45,6 +46,26 @@ func SignUp(c echo.Context) error {
 	// ユーザーIDを返す
 	response := types.User{
 		ID: userID,
+	}
+	return c.JSON(http.StatusOK, response)
+}
+
+func SignIn(c echo.Context) error {
+	// ユーザーIDを取得
+	jwtToken := c.Get("user").(*jwt.Token)
+	claims := jwtToken.Claims.(jwt.MapClaims)
+	token := claims["sub"].(string)
+
+	// ユーザー情報を取得
+	user := models.User{}
+	if err := database.DB.Where("token = ?", token).First(&user).Error; err != nil {
+		return c.JSON(http.StatusOK, epr.APIError("ユーザーIDが見つかりません。"))
+	}
+
+	// ユーザー情報を返す
+	response := types.User{
+		ID:        strconv.FormatUint(uint64(user.ID), 10),
+		IsOrdered: user.IsOrdered,
 	}
 	return c.JSON(http.StatusOK, response)
 }
