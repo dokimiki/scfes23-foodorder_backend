@@ -11,6 +11,7 @@ import (
 
 	epr "github.com/dokimiki/scfes23-foodorder_backend/libs/errorPayloadResponse"
 	cr "github.com/dokimiki/scfes23-foodorder_backend/routes/common"
+	ur "github.com/dokimiki/scfes23-foodorder_backend/routes/user"
 )
 
 func Hello(c echo.Context) error {
@@ -37,9 +38,10 @@ func main() {
 	common := v1.Group("/common")
 	common.GET("/menus", cr.GetMenuItems)
 	common.GET("/allergens/:menuId", cr.GetAllergen)
-	/* User */
 
+	/* User */
 	user := v1.Group("/user")
+	user.POST("/signup", ur.SignUp)
 
 	userWithAuth := user.Group("/me")
 	userWithAuth.Use(echojwt.JWT([]byte(signature)))
