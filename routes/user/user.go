@@ -375,13 +375,13 @@ func genBarcode() string {
 	var barcode string
 
 	for i := 0; i < length; i++ {
-		n := rand.Intn(10)
-
+		var n int
 		if i == 0 || i == 2 {
 			n = 3
-		}
-		if i == 1 || i == 3 {
+		} else if i == 1 || i == 3 {
 			n = 9
+		} else {
+			n = rand.Intn(10)
 		}
 
 		barcode += strconv.Itoa(n)
