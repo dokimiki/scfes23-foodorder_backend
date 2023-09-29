@@ -58,15 +58,15 @@ type CompleteInfo struct {
 }
 
 type OrderedPotato struct {
-	ReceptionTime  time.Time
-	CompletionTime time.Time
-	Qty            int
+	ReceptionTime  time.Time `json:"receptionTime"`
+	CompletionTime time.Time `json:"completionTime"`
+	Qty            int       `json:"qty"`
 	Order          struct {
-		ID            string
-		IsMobileOrder bool
-		IsPaid        bool
-		NumberTag     int
-	}
+		ID            string `json:"id"`
+		IsMobileOrder bool   `json:"isMobileOrder"`
+		IsPaid        bool   `json:"isPaid"`
+		NumberTag     int    `json:"numberTag"`
+	} `json:"order"`
 }
 
 type User struct {
