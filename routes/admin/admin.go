@@ -44,10 +44,10 @@ func GetPotatoData(c echo.Context) error {
 			CompletionTime: order.TimeOfCompletion,
 			Qty:            qty,
 			Order: struct {
-				ID            string
-				IsMobileOrder bool
-				IsPaid        bool
-				NumberTag     int
+				ID            string `json:"id"`
+				IsMobileOrder bool   `json:"isMobileOrder"`
+				IsPaid        bool   `json:"isPaid"`
+				NumberTag     int    `json:"numberTag"`
 			}{
 				ID:            strconv.FormatUint(uint64(order.ID), 10),
 				IsMobileOrder: order.IsMobileOrder,
