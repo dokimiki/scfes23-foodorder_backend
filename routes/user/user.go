@@ -60,7 +60,7 @@ func SignIn(c echo.Context) error {
 	// ユーザー情報を取得
 	user := models.User{}
 	if err := database.DB.Where("token = ?", token).First(&user).Error; err != nil {
-		/* ----- 新規ユーザー作成----- */
+		/* ---------- 新規ユーザー作成---------- */
 		// ユーザーIDを生成
 		token := gt.GenUserToken()
 		userID := issueUserJWT(token)
@@ -79,7 +79,7 @@ func SignIn(c echo.Context) error {
 			IsOrdered: false,
 		}
 		return c.JSON(http.StatusOK, response)
-		/* ----- 新規ユーザー作成----- */
+		/* ---------- 新規ユーザー作成---------- */
 	}
 
 	// ユーザー情報を返す
