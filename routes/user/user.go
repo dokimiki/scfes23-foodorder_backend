@@ -309,13 +309,21 @@ func SendCartData(c echo.Context) error {
 
 	// ユーザー情報を取得
 	user := models.User{}
-	if err := database.DB.Where("token = ?", token).First(&user).Error; err != nil {
+	tx := database.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+	if err := tx.Where("token = ?", token).First(&user).Error; err != nil {
+		tx.Rollback()
 		return c.JSON(http.StatusOK, epr.APIError("ユーザー情報が見つかりません。"))
 	}
 
 	// ユーザーの注文状況を取得
 	userLatestOrder := models.Order{}
-	if err := database.DB.Where("user_id = ?", user.ID).First(&userLatestOrder).Error; err != nil && err.Error() != "record not found" {
+	if err := tx.Where("user_id = ?", user.ID).First(&userLatestOrder).Error; err != nil && err.Error() != "record not found" {
+		tx.Rollback()
 		return c.JSON(http.StatusOK, epr.APIError("注文情報の取得に失敗しました。"))
 	}
 
@@ -323,7 +331,7 @@ func SendCartData(c echo.Context) error {
 	// 注文情報を取得
 	var latestCompletionTime time.Time
 	latestOrder := models.Order{}
-	if err := database.DB.Where("order_status = ?", "ordered").Order("created_at desc").First(&latestOrder).Error; err != nil {
+	if err := tx.Where("order_status = ?", "ordered").Order("created_at desc").First(&latestOrder).Error; err != nil {
 		latestCompletionTime = time.Now()
 	} else {
 		latestCompletionTime = latestOrder.TimeOfCompletion
@@ -342,7 +350,8 @@ func SendCartData(c echo.Context) error {
 		IsMobileOrder:    true,
 		TimeOfCompletion: timeOfCompletion,
 	}
-	if err := database.DB.Create(&order).Error; err != nil {
+	if err := tx.Create(&order).Error; err != nil {
+		tx.Rollback()
 		return c.JSON(http.StatusOK, epr.APIError("注文の作成に失敗しました。"))
 	}
 
@@ -355,16 +364,19 @@ func SendCartData(c echo.Context) error {
 			MenuID:   uint32(menuId),
 			Quantity: cartItem.Quantity,
 		}
-		if err := database.DB.Create(&orderItem).Error; err != nil {
+		if err := tx.Create(&orderItem).Error; err != nil {
+			tx.Rollback()
 			return c.JSON(http.StatusOK, epr.APIError("注文明細の作成に失敗しました。"))
 		}
 	}
 
 	// ユーザーのisOrderをtrueにする
-	if err := database.DB.Model(&user).Update("is_ordered", true).Error; err != nil {
+	if err := tx.Model(&user).Update("is_ordered", true).Error; err != nil {
+		tx.Rollback()
 		return c.JSON(http.StatusOK, epr.APIError("ユーザー情報の更新に失敗しました。"))
 	}
 
+	tx.Commit()
 	// 注文情報を返却
 	return c.JSON(http.StatusOK, true)
 }
