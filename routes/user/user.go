@@ -1,7 +1,6 @@
 package ur
 
 import (
-	"encoding/json"
 	"math"
 	"math/rand"
 	"net/http"
@@ -279,10 +278,10 @@ func GetCompleteState(c echo.Context) error {
 }
 
 func SendCartData(c echo.Context) error {
-		cart := []types.CartItem{}
-		if err := c.Bind(&cart); err != nil {
-			return c.JSON(http.StatusBadRequest, epr.APIError("bodyが不正です。"))
-		}
+	cart := []types.CartItem{}
+	if err := c.Bind(&cart); err != nil {
+		return c.JSON(http.StatusBadRequest, epr.APIError("bodyが不正です。"))
+	}
 
 	// ユーザーIDを取得
 	jwtToken := c.Get("user").(*jwt.Token)
