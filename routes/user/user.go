@@ -132,11 +132,11 @@ func DrawBulkLots(c echo.Context) error {
 		n := rand.Intn(100)
 		var kind string
 
-		if n < 20 { // 20%
+		if n < 30 { // 30%
 			kind = "100"
-		} else if n < 27 { // 7%
+		} else if n < 35 { // 5%
 			kind = "200"
-		} else if n < 30 { // 3%
+		} else if n < 37 { // 2%
 			kind = "300"
 		} else {
 			kind = "0"
@@ -189,11 +189,11 @@ func DrawInviteLots(c echo.Context) error {
 		n := rand.Intn(100)
 		var kind string
 
-		if n < 25 { // 25%
+		if n < 30 { // 30%
 			kind = "100"
-		} else if n < 29 { // 4%
+		} else if n < 35 { // 5%
 			kind = "200"
-		} else if n < 30 { // 1%
+		} else if n < 37 { // 2%
 			kind = "300"
 		} else {
 			kind = "0"
@@ -367,10 +367,10 @@ func genBarcode() string {
 	for i := 0; i < length; i++ {
 		n := rand.Intn(10)
 
-		if i == 0 {
+		if i == 0 || i == 2 {
 			n = 3
 		}
-		if i == 1 {
+		if i == 1 || i == 3 {
 			n = 9
 		}
 
