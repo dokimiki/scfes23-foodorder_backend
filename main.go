@@ -61,7 +61,9 @@ func main() {
 	admin.GET("/getpotatodata", ar.GetPotatoData)
 	admin.POST("/getcartdatafromordercode/:orderCode", ar.GetCartDataFromOrderCode)
 	admin.POST("/sendorderdata", ar.SendOrderData)
-	admin.GET("/getorderedcarts", ar.GetOrderedCarts)
+	admin.GET("/getseasoningdata", ar.GetSeasoningData)
+	admin.POST("/finishedseasoning/:orderId", ar.FinishedSeasoning)
+	admin.POST("/finishedfrying/:orderId", ar.FinishedFrying)
 
 	e.Logger.Fatal(e.StartTLS(":3939", "server.crt", "server.key"))
 }
