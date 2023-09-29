@@ -284,7 +284,7 @@ func GetCompleteState(c echo.Context) error {
 func SendCartData(c echo.Context) error {
 	cart := []types.CartItem{}
 	if err := c.Bind(&cart); err != nil {
-		return c.JSON(http.StatusBadRequest, epr.APIError("bodyが不正です。"))
+		return c.JSON(http.StatusOK, epr.APIError("bodyが不正です。"))
 	}
 
 	// ユーザーIDを取得
@@ -396,14 +396,14 @@ func GetCompleteInfo(c echo.Context) error {
 	order := models.Order{}
 	err := database.DB.Where("user_id = ?", user.ID).First(&order).Error
 	if err != nil {
-		return c.JSON(http.StatusNotFound, epr.APIError("注文情報が見つかりません。"))
+		return c.JSON(http.StatusOK, epr.APIError("注文情報が見つかりません。"))
 	}
 
 	// 注文明細情報を取得
 	items := []models.OrderItem{}
 	err = database.DB.Where("order_id = ?", order.ID).Find(&items).Error
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, epr.APIError("注文明細の取得に失敗しました。"))
+		return c.JSON(http.StatusOK, epr.APIError("注文明細の取得に失敗しました。"))
 	}
 
 	// 注文明細情報を整形
@@ -419,7 +419,7 @@ func GetCompleteInfo(c echo.Context) error {
 	var barcode string
 	getBarcode := models.Barcode{}
 	if err := database.DB.Where("order_id = ?", order.ID).First(&getBarcode).Error; err != nil && err.Error() != "record not found" {
-		return c.JSON(http.StatusInternalServerError, epr.APIError("バーコードの取得に失敗しました。"))
+		return c.JSON(http.StatusOK, epr.APIError("バーコードの取得に失敗しました。"))
 	} else if (err != nil && err.Error() == "record not found") || getBarcode.BarcodeData == "" {
 		// バーコードを生成
 		barcode := genBarcode()
@@ -430,7 +430,7 @@ func GetCompleteInfo(c echo.Context) error {
 			OrderID:     order.ID,
 		}
 		if err := database.DB.Save(&barcodeData).Error; err != nil {
-			return c.JSON(http.StatusInternalServerError, epr.APIError("バーコードの保存に失敗しました。"))
+			return c.JSON(http.StatusOK, epr.APIError("バーコードの保存に失敗しました。"))
 		}
 	} else {
 		barcode = getBarcode.BarcodeData

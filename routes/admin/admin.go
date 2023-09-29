@@ -97,7 +97,7 @@ func SendOrderData(c echo.Context) error {
 	// cartデータをJSONから構造体に変換する
 	orderData := OrderData{}
 	if err := c.Bind(&orderData); err != nil {
-		return c.JSON(http.StatusBadRequest, epr.APIError("bodyが不正です。"))
+		return c.JSON(http.StatusOK, epr.APIError("bodyが不正です。"))
 	}
 
 	if orderData.OrderCode == "" {
@@ -113,7 +113,7 @@ func SendOrderData(c echo.Context) error {
 
 		// order情報をDBに保存する
 		if err := database.DB.Save(&order).Error; err != nil {
-			return c.JSON(http.StatusInternalServerError, epr.APIError("order情報の保存に失敗しました。"))
+			return c.JSON(http.StatusOK, epr.APIError("order情報の保存に失敗しました。"))
 		}
 
 		// order_item情報をDBに保存する
@@ -127,7 +127,7 @@ func SendOrderData(c echo.Context) error {
 			}
 
 			if err := database.DB.Save(&orderItem).Error; err != nil {
-				return c.JSON(http.StatusInternalServerError, epr.APIError("order_item情報の保存に失敗しました。"))
+				return c.JSON(http.StatusOK, epr.APIError("order_item情報の保存に失敗しました。"))
 			}
 		}
 	} else {
@@ -147,7 +147,7 @@ func SendOrderData(c echo.Context) error {
 		order.NumberTag = orderData.NumTag
 		order.IsPaid = true
 		if err := database.DB.Save(&order).Error; err != nil {
-			return c.JSON(http.StatusInternalServerError, epr.APIError("order情報の更新に失敗しました。"))
+			return c.JSON(http.StatusOK, epr.APIError("order情報の更新に失敗しました。"))
 		}
 		//TODO: 予約アイテム変更処理を入れる
 	}
@@ -161,7 +161,7 @@ func GetOrderedCarts(c echo.Context) error {
 	orders := []models.Order{}
 	err := database.DB.Where("order_status = ?", "ordered").Find(&orders).Error
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, epr.APIError("注文情報の取得に失敗しました。"))
+		return c.JSON(http.StatusOK, epr.APIError("注文情報の取得に失敗しました。"))
 	}
 
 	// 注文情報をOrder型に変換
@@ -171,7 +171,7 @@ func GetOrderedCarts(c echo.Context) error {
 		orderItems := []models.OrderItem{}
 		err := database.DB.Where("order_id = ?", order.ID).Find(&orderItems).Error
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, epr.APIError("注文情報の取得に失敗しました。"))
+			return c.JSON(http.StatusOK, epr.APIError("注文情報の取得に失敗しました。"))
 		}
 
 		// 注文情報をCartItem型に変換
