@@ -1,7 +1,6 @@
 package ur
 
 import (
-	"math"
 	"math/rand"
 	"net/http"
 	"os"
@@ -316,9 +315,7 @@ func SendCartData(c echo.Context) error {
 
 	// ユーザーの注文状況を取得
 	userLatestOrder := models.Order{}
-	if err := database.DB.Where("user_id = ?", user.ID).First(&userLatestOrder).Error; err == nil {
-		return c.JSON(http.StatusOK, epr.APIError("すでに注文が完了しています。"))
-	} else if err.Error() != "record not found" {
+	if err := database.DB.Where("user_id = ?", user.ID).First(&userLatestOrder).Error; err != nil && err.Error() != "record not found" {
 		return c.JSON(http.StatusOK, epr.APIError("注文情報の取得に失敗しました。"))
 	}
 
@@ -333,7 +330,10 @@ func SendCartData(c echo.Context) error {
 	}
 
 	timeOfCompletion := latestCompletionTime
-	timeOfCompletion = timeOfCompletion.Add(time.Duration(math.Ceil(float64(cartItemsCount)/3)) * 4 * time.Minute)
+	if timeOfCompletion.Before(time.Now()) {
+		timeOfCompletion = time.Now()
+	}
+	timeOfCompletion = timeOfCompletion.Add(time.Duration(cartItemsCount*2+2) * time.Minute)
 
 	// 注文を作成
 	order := models.Order{
