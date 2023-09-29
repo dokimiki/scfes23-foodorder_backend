@@ -69,7 +69,7 @@ func GetSeasoningData(c echo.Context) error {
 	}
 
 	// レスポンスを作成
-	var resOrders []types.Order
+	resOrders := []types.Order{}
 	for _, order := range dbOrders {
 		// 注文情報を取得
 		orderItems := []models.OrderItem{}
