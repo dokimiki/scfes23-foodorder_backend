@@ -60,6 +60,7 @@ func main() {
 	admin := v1.Group("/admin")
 	admin.GET("/getpotatodata", ar.GetPotatoData)
 	admin.POST("/getcartdatafromordercode/:orderCode", ar.GetCartDataFromOrderCode)
+	admin.POST("/sendorderdata", ar.SendOrderData)
 
 	e.Logger.Fatal(e.StartTLS(":3939", "server.crt", "server.key"))
 }

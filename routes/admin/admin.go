@@ -1,7 +1,6 @@
 package ar
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 	"time"
@@ -85,39 +84,111 @@ func GetCartDataFromOrderCode(c echo.Context) error {
 	return c.JSON(http.StatusOK, response)
 }
 
-func sendOrderData(c echo.Context) error {
+type OrderData struct {
+	Cart      []types.CartItem `json:"cart"`
+	OrderCode string           `json:"orderCode"`
+	NumTag    int              `json:"numTag"`
+}
+
+func SendOrderData(c echo.Context) error {
 	// cartデータをJSONから構造体に変換する
-
-	cart := c.QueryParam("cart")
-	// カートをJSON形式に変換
-	cartItems := []types.CartItem{}
-
-	err := json.Unmarshal([]byte(cart), &cartItems)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, epr.APIError("カートのJSON形式が不正です。"))
+	orderData := OrderData{}
+	if err := c.Bind(&orderData); err != nil {
+		return err
 	}
 
-	// order情報を作成する
-	var order models.Order
-	order.BarcodeData = c.Param("orderCode")
-	order.ReceptionTime = time.Now()
-	order.CompletionTime = time.Now()
-	order.Qty = 0
+	if orderData.OrderCode == "" {
+		//新しいorderを作成する
+		order := models.Order{
+			UserID:           1,
+			IsMobileOrder:    false,
+			IsPaid:           true,
+			NumberTag:        orderData.NumTag,
+			OrderStatus:      "ordered",
+			TimeOfCompletion: time.Now().Add(10 * time.Minute),
+		}
 
-	// cart情報をorder情報に追加する
-	for _, cartItem := range cart {
-		order.Qty += cartItem.Quantity
-		order.Items = append(order.Items, models.OrderItem{
-			MenuID:   cartItem.ID,
-			Quantity: cartItem.Quantity,
-		})
-	}
+		// order情報をDBに保存する
+		if err := database.DB.Save(&order).Error; err != nil {
+			return c.JSON(http.StatusInternalServerError, epr.APIError("order情報の保存に失敗しました。"))
+		}
 
-	// order情報をDBに保存する
-	if err := database.DB.Save(&order).Error; err != nil {
-		return c.JSON(http.StatusInternalServerError, epr.APIError("order情報の保存に失敗しました。"))
+		// order_item情報をDBに保存する
+		for _, cartItem := range orderData.Cart {
+			menuId, _ := strconv.ParseUint(cartItem.ID, 10, 32)
+
+			orderItem := models.OrderItem{
+				OrderID:  order.ID,
+				MenuID:   uint32(menuId),
+				Quantity: cartItem.Quantity,
+			}
+
+			if err := database.DB.Save(&orderItem).Error; err != nil {
+				return c.JSON(http.StatusInternalServerError, epr.APIError("order_item情報の保存に失敗しました。"))
+			}
+		}
+	} else {
+		// orderCodeからorder情報を取得する
+		var barcode models.Barcode
+		if err := database.DB.Where("barcode_data = ?", orderData.OrderCode).First(&barcode).Error; err != nil {
+			return c.JSON(http.StatusOK, epr.APIError("注文情報の取得でエラーが発生しました。"))
+		}
+
+		// order情報を取得する
+		var order models.Order
+		if err := database.DB.Where("id = ?", barcode.OrderID).First(&order).Error; err != nil {
+			return c.JSON(http.StatusOK, epr.APIError("注文情報の取得でエラーが発生しました。"))
+		}
+
+		// order情報を更新する
+		order.NumberTag = orderData.NumTag
+		order.IsPaid = true
+		if err := database.DB.Save(&order).Error; err != nil {
+			return c.JSON(http.StatusInternalServerError, epr.APIError("order情報の更新に失敗しました。"))
+		}
+		//TODO: 予約アイテム変更処理を入れる
 	}
 
 	// 注文完了
 	return c.JSON(http.StatusOK, true)
+}
+
+func GetOrderedCarts(c echo.Context) error {
+	// 注文情報を取得
+	orders := []models.Order{}
+	err := database.DB.Where("order_status = ?", "ordered").Find(&orders).Error
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, epr.APIError("注文情報の取得に失敗しました。"))
+	}
+
+	// 注文情報をOrder型に変換
+	var orderedCarts []types.Order
+	for _, order := range orders {
+		// 注文情報を取得
+		orderItems := []models.OrderItem{}
+		err := database.DB.Where("order_id = ?", order.ID).Find(&orderItems).Error
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, epr.APIError("注文情報の取得に失敗しました。"))
+		}
+
+		// 注文情報をCartItem型に変換
+		var cartItems []types.CartItem
+		for _, orderItem := range orderItems {
+			cartItems = append(cartItems, types.CartItem{
+				ID:       strconv.FormatUint(uint64(orderItem.MenuID), 10),
+				Quantity: orderItem.Quantity,
+			})
+		}
+
+		// Order型に変換
+		orderedCarts = append(orderedCarts, types.Order{
+			ID:            strconv.FormatUint(uint64(order.ID), 10),
+			IsMobileOrder: order.IsMobileOrder,
+			NumberTag:     order.NumberTag,
+			Cart:          cartItems,
+		})
+	}
+
+	// レスポンスを返却
+	return c.JSON(http.StatusOK, orderedCarts)
 }
