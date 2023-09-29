@@ -422,7 +422,7 @@ func GetCompleteInfo(c echo.Context) error {
 		return c.JSON(http.StatusOK, epr.APIError("バーコードの取得に失敗しました。"))
 	} else if (err != nil && err.Error() == "record not found") || getBarcode.BarcodeData == "" {
 		// バーコードを生成
-		barcode := genBarcode()
+		barcode = genBarcode()
 
 		// バーコードを保存
 		barcodeData := models.Barcode{
