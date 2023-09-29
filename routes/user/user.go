@@ -291,7 +291,7 @@ func SendCartData(c echo.Context) error {
 
 	// カートの中の商品の数を数える
 	var cartItemsCount int
-	for _, cartItem := range cartItems {
+	for _, cartItem := range cart {
 		cartItemsCount += cartItem.Quantity
 	}
 
@@ -334,7 +334,7 @@ func SendCartData(c echo.Context) error {
 	}
 
 	// 注文明細を作成
-	for _, cartItem := range cartItems {
+	for _, cartItem := range cart {
 		// 注文明細を作成
 		menuId, _ := strconv.Atoi(cartItem.ID)
 		orderItem := models.OrderItem{
