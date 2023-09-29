@@ -185,7 +185,7 @@ func GetOrderedCarts(c echo.Context) error {
 			ID:            strconv.FormatUint(uint64(order.ID), 10),
 			IsMobileOrder: order.IsMobileOrder,
 			NumberTag:     order.NumberTag,
-			Cart:          cartItems,
+			Items:         cartItems,
 		})
 	}
 
