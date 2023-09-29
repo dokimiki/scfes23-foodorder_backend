@@ -194,6 +194,25 @@ func SendOrderData(c echo.Context) error {
 	return c.JSON(http.StatusOK, true)
 }
 
+func FinishedFrying(c echo.Context) error {
+	orderId := c.Param("orderId")
+
+	// 注文情報を取得
+	order := models.Order{}
+	if err := database.DB.Where("id = ?", orderId).First(&order).Error; err != nil {
+		return c.JSON(http.StatusOK, epr.APIError("注文情報の取得に失敗しました。"))
+	}
+
+	// 注文情報を更新
+	order.OrderStatus = "cooked"
+	if err := database.DB.Save(&order).Error; err != nil {
+		return c.JSON(http.StatusOK, epr.APIError("注文情報の更新に失敗しました。"))
+	}
+
+	// レスポンスを返却
+	return c.JSON(http.StatusOK, true)
+}
+
 func FinishedSeasoning(c echo.Context) error {
 	orderId := c.Param("orderId")
 
