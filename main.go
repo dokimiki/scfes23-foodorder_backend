@@ -45,10 +45,10 @@ func main() {
 	user := v1.Group("/user")
 	user.POST("/signup", ur.SignUp)
 	user.POST("/inviteregistry/:userId", ur.InviteRegistry)
+	user.GET("/signin/:token", ur.SignIn)
 
 	userWithAuth := user.Group("/me")
 	userWithAuth.Use(echojwt.JWT([]byte(signature)))
-	userWithAuth.GET("/signin", ur.SignIn)
 	userWithAuth.GET("/drawbulklots", ur.DrawBulkLots)
 	userWithAuth.GET("/drawinvitelots", ur.DrawInviteLots)
 	userWithAuth.GET("/getcouponitemids", ur.GetCouponItemIds)

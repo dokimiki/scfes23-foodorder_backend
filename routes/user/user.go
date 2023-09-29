@@ -55,9 +55,7 @@ func SignUp(c echo.Context) error {
 
 func SignIn(c echo.Context) error {
 	// ユーザーIDを取得
-	jwtToken := c.Get("user").(*jwt.Token)
-	claims := jwtToken.Claims.(jwt.MapClaims)
-	token := claims["sub"].(string)
+	token := c.Param("token")
 
 	// ユーザー情報を取得
 	user := models.User{}
