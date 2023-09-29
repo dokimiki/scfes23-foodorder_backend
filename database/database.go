@@ -20,7 +20,7 @@ func init() {
 	dsn := USER + ":" + PASS + "@" + PROTOCOL + "/" + DATABASE + "?charset=utf8mb4&parseTime=True&loc=Local"
 
 	var err error
-	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{SkipDefaultTransaction: false})
+	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{SkipDefaultTransaction: true})
 	if err != nil {
 		panic(err)
 	}

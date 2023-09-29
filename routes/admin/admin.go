@@ -15,14 +15,14 @@ import (
 
 func GetPotatoData(c echo.Context) error {
 	// DBから注文情報を取得する
-	var orders []models.Order
-	if err := database.DB.Where("order_status = ?", "ordered").Find(&orders).Error; err != nil {
+	var dbOrders []models.Order
+	if err := database.DB.Where("order_status = ?", "ordered").Find(&dbOrders).Error; err != nil {
 		return c.JSON(http.StatusOK, epr.APIError("注文情報の取得でエラーが発生しました。"))
 	}
 
 	// レスポンスを作成する
 	response := []types.OrderedPotato{}
-	for _, order := range orders {
+	for _, order := range dbOrders {
 		// DBから注文した商品の数を数えて取得する
 		var orderedItems []models.OrderItem
 		if err := database.DB.Where("order_id = ?", order.ID).Find(&orderedItems).Error; err != nil {
@@ -59,6 +59,44 @@ func GetPotatoData(c echo.Context) error {
 
 	// JSONで返す
 	return c.JSON(http.StatusOK, response)
+}
+
+func GetSeasoningData(c echo.Context) error {
+	// 注文情報を取得
+	dbOrders := []models.Order{}
+	if err := database.DB.Where("order_status = ?", "cooked").Find(&dbOrders).Error; err != nil {
+		return c.JSON(http.StatusOK, epr.APIError("注文情報の取得に失敗しました。"))
+	}
+
+	// レスポンスを作成
+	var resOrders []types.Order
+	for _, order := range dbOrders {
+		// 注文情報を取得
+		orderItems := []models.OrderItem{}
+		if err := database.DB.Where("order_id = ?", order.ID).Find(&orderItems).Error; err != nil {
+			return c.JSON(http.StatusOK, epr.APIError("注文情報の取得に失敗しました。"))
+		}
+
+		// cartItemの作成
+		var cartItems []types.CartItem
+		for _, orderItem := range orderItems {
+			cartItems = append(cartItems, types.CartItem{
+				ID:       strconv.FormatUint(uint64(orderItem.MenuID), 10),
+				Quantity: orderItem.Quantity,
+			})
+		}
+
+		// Order型に変換
+		resOrders = append(resOrders, types.Order{
+			ID:            strconv.FormatUint(uint64(order.ID), 10),
+			IsMobileOrder: order.IsMobileOrder,
+			NumberTag:     order.NumberTag,
+			Items:         cartItems,
+		})
+	}
+
+	// レスポンスを返却
+	return c.JSON(http.StatusOK, resOrders)
 }
 
 func GetCartDataFromOrderCode(c echo.Context) error {
@@ -154,46 +192,6 @@ func SendOrderData(c echo.Context) error {
 
 	// 注文完了
 	return c.JSON(http.StatusOK, true)
-}
-
-func GetOrderedCarts(c echo.Context) error {
-	// 注文情報を取得
-	orders := []models.Order{}
-	err := database.DB.Where("order_status = ?", "ordered").Find(&orders).Error
-	if err != nil {
-		return c.JSON(http.StatusOK, epr.APIError("注文情報の取得に失敗しました。"))
-	}
-
-	// 注文情報をOrder型に変換
-	var orderedCarts []types.Order
-	for _, order := range orders {
-		// 注文情報を取得
-		orderItems := []models.OrderItem{}
-		err := database.DB.Where("order_id = ?", order.ID).Find(&orderItems).Error
-		if err != nil {
-			return c.JSON(http.StatusOK, epr.APIError("注文情報の取得に失敗しました。"))
-		}
-
-		// 注文情報をCartItem型に変換
-		var cartItems []types.CartItem
-		for _, orderItem := range orderItems {
-			cartItems = append(cartItems, types.CartItem{
-				ID:       strconv.FormatUint(uint64(orderItem.MenuID), 10),
-				Quantity: orderItem.Quantity,
-			})
-		}
-
-		// Order型に変換
-		orderedCarts = append(orderedCarts, types.Order{
-			ID:            strconv.FormatUint(uint64(order.ID), 10),
-			IsMobileOrder: order.IsMobileOrder,
-			NumberTag:     order.NumberTag,
-			Items:         cartItems,
-		})
-	}
-
-	// レスポンスを返却
-	return c.JSON(http.StatusOK, orderedCarts)
 }
 
 func FinishedSeasoning(c echo.Context) error {
