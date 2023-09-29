@@ -279,20 +279,15 @@ func GetCompleteState(c echo.Context) error {
 }
 
 func SendCartData(c echo.Context) error {
-	// カートを取得
-	cart := c.Param("cart")
+		cart := []types.CartItem{}
+		if err := c.Bind(&cart); err != nil {
+			return c.JSON(http.StatusBadRequest, epr.APIError("bodyが不正です。"))
+		}
 
 	// ユーザーIDを取得
 	jwtToken := c.Get("user").(*jwt.Token)
 	claims := jwtToken.Claims.(jwt.MapClaims)
 	token := claims["sub"].(string)
-
-	// カートをJSON形式に変換
-	cartItems := []types.CartItem{}
-	err := json.Unmarshal([]byte(cart), &cartItems)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, epr.APIError("カートのJSON形式が不正です。"))
-	}
 
 	// カートの中の商品の数を数える
 	var cartItemsCount int

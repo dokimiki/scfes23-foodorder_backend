@@ -97,7 +97,7 @@ func SendOrderData(c echo.Context) error {
 	// cartデータをJSONから構造体に変換する
 	orderData := OrderData{}
 	if err := c.Bind(&orderData); err != nil {
-		return err
+		return c.JSON(http.StatusBadRequest, epr.APIError("bodyが不正です。"))
 	}
 
 	if orderData.OrderCode == "" {
