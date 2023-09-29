@@ -40,7 +40,7 @@ func GetAllergen(c echo.Context) error {
 
 	// アレルギー情報を取得する
 	allergens := models.MenuAllergen{}
-	if err := database.DB.Where("menu_id = ?", id).First(&allergens).Error; err != nil {
+	if err := database.DB.Where("menu_id = ?", id).Take(&allergens).Error; err != nil {
 		return c.JSON(http.StatusOK, epr.APIError("アレルギー情報取得でエラーが発生しました。"))
 	}
 

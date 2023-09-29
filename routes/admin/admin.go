@@ -125,15 +125,9 @@ func GetCartDataFromOrderCode(c echo.Context) error {
 	return c.JSON(http.StatusOK, response)
 }
 
-type OrderData struct {
-	Cart      []types.CartItem `json:"cart"`
-	OrderCode string           `json:"orderCode"`
-	NumTag    int              `json:"numTag"`
-}
-
 func SendOrderData(c echo.Context) error {
 	// cartデータをJSONから構造体に変換する
-	orderData := OrderData{}
+	orderData := types.OrderData{}
 	if err := c.Bind(&orderData); err != nil {
 		return c.JSON(http.StatusOK, epr.APIError("bodyが不正です。"))
 	}

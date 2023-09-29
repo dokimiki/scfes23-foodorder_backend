@@ -35,7 +35,7 @@ func issueUserJWT(token string) string {
 func SignUp(c echo.Context) error {
 	// ユーザーIDを生成
 	token := gt.GenUserToken()
-	userID := issueUserJWT(token)
+	JWT := issueUserJWT(token)
 
 	// ユーザー情報を保存
 	user := models.User{
@@ -47,7 +47,7 @@ func SignUp(c echo.Context) error {
 
 	// ユーザーIDを返す
 	response := types.User{
-		ID:        userID,
+		ID:        JWT,
 		IsOrdered: false,
 	}
 	return c.JSON(http.StatusOK, response)
@@ -59,27 +59,41 @@ func SignIn(c echo.Context) error {
 
 	// ユーザー情報を取得
 	user := models.User{}
-	if err := database.DB.Where("token = ?", token).First(&user).Error; err != nil {
-		/* ---------- 新規ユーザー作成---------- */
-		// ユーザーIDを生成
-		token := gt.GenUserToken()
-		userID := issueUserJWT(token)
+	// トランザクションを開始
+	tx := database.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+	if err := tx.Where("token = ?", token).First(&user).Error; err != nil {
+		if err.Error() == "record not found" {
+			/* ---------- 新規ユーザー作成---------- */
+			// ユーザーIDを生成
+			token := gt.GenUserToken()
+			JWT := issueUserJWT(token)
 
-		// ユーザー情報を保存
-		user := models.User{
-			Token: token,
-		}
-		if err := database.DB.Create(&user).Error; err != nil {
-			return c.JSON(http.StatusOK, epr.APIError("ユーザー登録に失敗しました。"))
-		}
+			// ユーザー情報を保存
+			user := models.User{
+				Token: token,
+			}
+			if err := tx.Create(&user).Error; err != nil {
+				tx.Rollback()
+				return c.JSON(http.StatusOK, epr.APIError("ユーザー登録に失敗しました。"))
+			}
 
-		// ユーザーIDを返す
-		response := types.User{
-			ID:        userID,
-			IsOrdered: false,
+			// ユーザー情報を返す
+			response := types.User{
+				ID:        JWT,
+				IsOrdered: false,
+			}
+			tx.Commit()
+			return c.JSON(http.StatusOK, response)
+			/* ---------- 新規ユーザー作成---------- */
+		} else {
+			tx.Rollback()
+			return c.JSON(http.StatusOK, epr.APIError("ユーザー情報が見つかりません。"))
 		}
-		return c.JSON(http.StatusOK, response)
-		/* ---------- 新規ユーザー作成---------- */
 	}
 
 	// ユーザー情報を返す
@@ -87,6 +101,7 @@ func SignIn(c echo.Context) error {
 		ID:        issueUserJWT(user.Token),
 		IsOrdered: user.IsOrdered,
 	}
+	tx.Commit()
 	return c.JSON(http.StatusOK, response)
 }
 
@@ -94,15 +109,8 @@ func InviteRegistry(c echo.Context) error {
 	// ユーザーIDを取得
 	userId := c.Param("userId")
 
-	// ユーザー情報を取得
-	user := models.User{}
-	if err := database.DB.Where("token = ?", userId).First(&user).Error; err != nil {
-		return c.JSON(http.StatusOK, epr.APIError("ユーザーIDが見つかりません。"))
-	}
-
-	// ユーザーのisInvitationをtrueに更新
-	user.IsInvitation = true
-	if err := database.DB.Save(&user).Error; err != nil {
+	// ユーザーIDを指定し、ユーザーのisInvitationをtrueに更新
+	if err := database.DB.Model(&models.User{}).Where("token = ?", userId).Update("is_invitation", true).Error; err != nil {
 		return c.JSON(http.StatusOK, epr.APIError("ユーザーの招待状態を更新できませんでした。"))
 	}
 
@@ -119,7 +127,15 @@ func DrawBulkLots(c echo.Context) error {
 
 	// ユーザー情報を取得
 	user := models.User{}
-	if err := database.DB.Where("token = ?", token).First(&user).Error; err != nil {
+	// トランザクションを開始
+	tx := database.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+	if err := tx.Where("token = ?", token).First(&user).Error; err != nil {
+		tx.Rollback()
 		return c.JSON(http.StatusOK, epr.APIError("ユーザーIDが見つかりません。"))
 	}
 
@@ -130,36 +146,29 @@ func DrawBulkLots(c echo.Context) error {
 	if bulkCoupon == "none" {
 		// ランダムにkindを生成
 		n := rand.Intn(100)
-		var kind string
 
 		if n < 30 { // 30%
-			kind = "100"
+			bulkCoupon = "100"
 		} else if n < 35 { // 5%
-			kind = "200"
+			bulkCoupon = "200"
 		} else if n < 37 { // 2%
-			kind = "300"
+			bulkCoupon = "300"
 		} else {
-			kind = "0"
+			bulkCoupon = "0"
 		}
 
 		// bulk_couponを更新
-		user.BulkCoupon = kind
-		if err := database.DB.Save(&user).Error; err != nil {
+		user.BulkCoupon = bulkCoupon
+		if err := tx.Save(&user).Error; err != nil {
+			tx.Rollback()
 			return c.JSON(http.StatusOK, epr.APIError("bulk_couponの更新に失敗しました。"))
 		}
-
-		// 生成したkindを返す
-		response := types.Coupon{
-			Kind: kind,
-		}
-		return c.JSON(http.StatusOK, response)
 	}
 
-	// bulk_couponがnoneでない場合
-	// そのまま返す
 	response := types.Coupon{
 		Kind: bulkCoupon,
 	}
+	tx.Commit()
 	return c.JSON(http.StatusOK, response)
 }
 
@@ -171,12 +180,21 @@ func DrawInviteLots(c echo.Context) error {
 
 	// ユーザー情報を取得
 	user := models.User{}
-	if err := database.DB.Where("token = ?", token).First(&user).Error; err != nil {
+	// トランザクションを開始
+	tx := database.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+	if err := tx.Where("token = ?", token).First(&user).Error; err != nil {
+		tx.Rollback()
 		return c.JSON(http.StatusOK, epr.APIError("ユーザーIDが見つかりません。"))
 	}
 
 	// ユーザーが誰かを招待したかを調べる
 	if !user.IsInvitation {
+		tx.Rollback()
 		return c.JSON(http.StatusOK, epr.APIError("QRコードをほかの人に読み込んでもらってください。"))
 	}
 
@@ -187,36 +205,28 @@ func DrawInviteLots(c echo.Context) error {
 	if inviteCoupon == "none" {
 		// ランダムにkindを生成
 		n := rand.Intn(100)
-		var kind string
-
 		if n < 30 { // 30%
-			kind = "100"
+			inviteCoupon = "100"
 		} else if n < 35 { // 5%
-			kind = "200"
+			inviteCoupon = "200"
 		} else if n < 37 { // 2%
-			kind = "300"
+			inviteCoupon = "300"
 		} else {
-			kind = "0"
+			inviteCoupon = "0"
 		}
 
 		// inviteCouponを更新
-		user.InviteCoupon = kind
-		if err := database.DB.Save(&user).Error; err != nil {
+		user.InviteCoupon = inviteCoupon
+		if err := tx.Save(&user).Error; err != nil {
+			tx.Rollback()
 			return c.JSON(http.StatusOK, epr.APIError("inviteCouponの更新に失敗しました。"))
 		}
-
-		// 生成したkindを返す
-		response := types.Coupon{
-			Kind: kind,
-		}
-		return c.JSON(http.StatusOK, response)
 	}
 
-	// inviteCouponがnoneでない場合
-	// そのまま返す
 	response := types.Coupon{
 		Kind: inviteCoupon,
 	}
+	tx.Commit()
 	return c.JSON(http.StatusOK, response)
 }
 

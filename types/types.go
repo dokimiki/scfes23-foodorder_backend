@@ -77,3 +77,9 @@ type User struct {
 type InvitationStatus struct {
 	IsInvited bool `json:"isInvited"`
 }
+
+type OrderData struct {
+	Cart      []CartItem `json:"cart"`
+	OrderCode string     `json:"orderCode"`
+	NumTag    int        `json:"numTag"`
+}
