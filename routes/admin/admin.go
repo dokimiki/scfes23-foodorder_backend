@@ -23,6 +23,9 @@ func GetPotatoData(c echo.Context) error {
 	// レスポンスを作成する
 	response := []types.OrderedPotato{}
 	for _, order := range orders {
+		if (order.MenuID >= 16) {
+			continue;
+		}
 		// DBから注文した商品の数を数えて取得する
 		var orderedItems []models.OrderItem
 		if err := database.DB.Where("order_id = ?", order.ID).Find(&orderedItems).Error; err != nil {
