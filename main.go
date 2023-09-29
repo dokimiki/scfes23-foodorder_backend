@@ -53,7 +53,7 @@ func main() {
 	userWithAuth.GET("/drawinvitelots", ur.DrawInviteLots)
 	userWithAuth.GET("/getcouponitemids", ur.GetCouponItemIds)
 	userWithAuth.GET("/getcompletestate", ur.GetCompleteState)
-	userWithAuth.POST("/sendcartdata/:cart", ur.SendCartData)
+	userWithAuth.POST("/sendcartdata", ur.SendCartData)
 	userWithAuth.GET("/getcompleteinfo", ur.GetCompleteInfo)
 
 	/* Admin */
