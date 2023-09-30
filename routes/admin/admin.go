@@ -167,7 +167,7 @@ func SendOrderData(c echo.Context) error {
 		// 注文情報を取得
 		var latestCompletionTime time.Time
 		latestOrder := models.Order{}
-		if err := tx.Where("order_status = ?", "ordered").Order("created_at desc").First(&latestOrder).Error; err != nil {
+		if err := tx.Where("order_status = ?", "received").Order("created_at desc").First(&latestOrder).Error; err != nil {
 			latestCompletionTime = time.Now()
 		} else {
 			latestCompletionTime = latestOrder.TimeOfCompletion
@@ -177,7 +177,7 @@ func SendOrderData(c echo.Context) error {
 		if timeOfCompletion.Before(time.Now()) {
 			timeOfCompletion = time.Now()
 		}
-		timeOfCompletion = timeOfCompletion.Add(time.Duration(cartItemsCount*2+2) * time.Minute)
+		timeOfCompletion = timeOfCompletion.Add(time.Duration(cartItemsCount*2+6) * time.Minute)
 
 		//新しいorderを作成する
 		order := models.Order{
