@@ -132,7 +132,35 @@ func SendOrderData(c echo.Context) error {
 		return c.JSON(http.StatusOK, epr.APIError("bodyが不正です。"))
 	}
 
+	tx := database.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
 	if orderData.OrderCode == "" {
+		// time_of_completionをほかの注文状況から求める
+		// カートの中の商品の数を数える
+		var cartItemsCount int
+		for _, cartItem := range orderData.Cart {
+			cartItemsCount += cartItem.Quantity
+		}
+		// 注文情報を取得
+		var latestCompletionTime time.Time
+		latestOrder := models.Order{}
+		if err := tx.Where("order_status = ?", "ordered").Order("created_at desc").First(&latestOrder).Error; err != nil {
+			latestCompletionTime = time.Now()
+		} else {
+			latestCompletionTime = latestOrder.TimeOfCompletion
+		}
+
+		timeOfCompletion := latestCompletionTime
+		if timeOfCompletion.Before(time.Now()) {
+			timeOfCompletion = time.Now()
+		}
+		timeOfCompletion = timeOfCompletion.Add(time.Duration(cartItemsCount*2+2) * time.Minute)
+
 		//新しいorderを作成する
 		order := models.Order{
 			UserID:           1,
@@ -140,11 +168,12 @@ func SendOrderData(c echo.Context) error {
 			IsPaid:           true,
 			NumberTag:        orderData.NumTag,
 			OrderStatus:      "ordered",
-			TimeOfCompletion: time.Now().Add(10 * time.Minute),
+			TimeOfCompletion: timeOfCompletion,
 		}
 
 		// order情報をDBに保存する
-		if err := database.DB.Save(&order).Error; err != nil {
+		if err := tx.Save(&order).Error; err != nil {
+			tx.Rollback()
 			return c.JSON(http.StatusOK, epr.APIError("order情報の保存に失敗しました。"))
 		}
 
@@ -158,48 +187,46 @@ func SendOrderData(c echo.Context) error {
 				Quantity: cartItem.Quantity,
 			}
 
-			if err := database.DB.Save(&orderItem).Error; err != nil {
+			if err := tx.Save(&orderItem).Error; err != nil {
+				tx.Rollback()
 				return c.JSON(http.StatusOK, epr.APIError("order_item情報の保存に失敗しました。"))
 			}
 		}
 	} else {
 		// orderCodeからorder情報を取得する
 		var barcode models.Barcode
-		if err := database.DB.Where("barcode_data = ?", orderData.OrderCode).First(&barcode).Error; err != nil {
+		if err := tx.Where("barcode_data = ?", orderData.OrderCode).First(&barcode).Error; err != nil {
+			tx.Rollback()
 			return c.JSON(http.StatusOK, epr.APIError("注文情報の取得でエラーが発生しました。"))
 		}
 
 		// order情報を取得する
 		var order models.Order
-		if err := database.DB.Where("id = ?", barcode.OrderID).First(&order).Error; err != nil {
+		if err := tx.Where("id = ?", barcode.OrderID).First(&order).Error; err != nil {
+			tx.Rollback()
 			return c.JSON(http.StatusOK, epr.APIError("注文情報の取得でエラーが発生しました。"))
 		}
 
 		// order情報を更新する
 		order.NumberTag = orderData.NumTag
 		order.IsPaid = true
-		if err := database.DB.Save(&order).Error; err != nil {
+		if err := tx.Save(&order).Error; err != nil {
+			tx.Rollback()
 			return c.JSON(http.StatusOK, epr.APIError("order情報の更新に失敗しました。"))
 		}
 		//TODO: 予約アイテム変更処理を入れる
 	}
 
 	// 注文完了
+	tx.Commit()
 	return c.JSON(http.StatusOK, true)
 }
 
 func FinishedFrying(c echo.Context) error {
 	orderId := c.Param("orderId")
 
-	// 注文情報を取得
-	order := models.Order{}
-	if err := database.DB.Where("id = ?", orderId).First(&order).Error; err != nil {
-		return c.JSON(http.StatusOK, epr.APIError("注文情報の取得に失敗しました。"))
-	}
-
-	// 注文情報を更新
-	order.OrderStatus = "cooked"
-	if err := database.DB.Save(&order).Error; err != nil {
+	// orderIdが一致しているorderの注文情報尾を更新
+	if err := database.DB.Model(&models.Order{}).Where("id = ?", orderId).Update("order_status", "cooked").Error; err != nil {
 		return c.JSON(http.StatusOK, epr.APIError("注文情報の更新に失敗しました。"))
 	}
 
@@ -210,15 +237,8 @@ func FinishedFrying(c echo.Context) error {
 func FinishedSeasoning(c echo.Context) error {
 	orderId := c.Param("orderId")
 
-	// 注文情報を取得
-	order := models.Order{}
-	if err := database.DB.Where("id = ?", orderId).First(&order).Error; err != nil {
-		return c.JSON(http.StatusOK, epr.APIError("注文情報の取得に失敗しました。"))
-	}
-
-	// 注文情報を更新
-	order.OrderStatus = "received"
-	if err := database.DB.Save(&order).Error; err != nil {
+	// orderIdが一致しているorderの注文情報尾を更新
+	if err := database.DB.Model(&models.Order{}).Where("id = ?", orderId).Update("order_status", "received").Error; err != nil {
 		return c.JSON(http.StatusOK, epr.APIError("注文情報の更新に失敗しました。"))
 	}
 
