@@ -16,7 +16,14 @@ import (
 func GetPotatoData(c echo.Context) error {
 	// DBから注文情報を取得する
 	var dbOrders []models.Order
-	if err := database.DB.Where("order_status = ?", "ordered").Find(&dbOrders).Error; err != nil {
+	tx := database.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+	if err := tx.Where("order_status = ?", "ordered").Find(&dbOrders).Error; err != nil {
+		tx.Rollback()
 		return c.JSON(http.StatusOK, epr.APIError("注文情報の取得でエラーが発生しました。"))
 	}
 
@@ -25,7 +32,8 @@ func GetPotatoData(c echo.Context) error {
 	for _, order := range dbOrders {
 		// DBから注文した商品の数を数えて取得する
 		var orderedItems []models.OrderItem
-		if err := database.DB.Where("order_id = ?", order.ID).Find(&orderedItems).Error; err != nil {
+		if err := tx.Where("order_id = ?", order.ID).Find(&orderedItems).Error; err != nil {
+			tx.Rollback()
 			return c.JSON(http.StatusOK, epr.APIError("注文情報の取得でエラーが発生しました。"))
 		}
 
@@ -58,13 +66,21 @@ func GetPotatoData(c echo.Context) error {
 	}
 
 	// JSONで返す
+	tx.Commit()
 	return c.JSON(http.StatusOK, response)
 }
 
 func GetSeasoningData(c echo.Context) error {
 	// 注文情報を取得
 	dbOrders := []models.Order{}
-	if err := database.DB.Where("order_status = ?", "cooked").Find(&dbOrders).Error; err != nil {
+	tx := database.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+	if err := tx.Where("order_status = ?", "cooked").Find(&dbOrders).Error; err != nil {
+		tx.Rollback()
 		return c.JSON(http.StatusOK, epr.APIError("注文情報の取得に失敗しました。"))
 	}
 
@@ -73,7 +89,8 @@ func GetSeasoningData(c echo.Context) error {
 	for _, order := range dbOrders {
 		// 注文情報を取得
 		orderItems := []models.OrderItem{}
-		if err := database.DB.Where("order_id = ?", order.ID).Find(&orderItems).Error; err != nil {
+		if err := tx.Where("order_id = ?", order.ID).Find(&orderItems).Error; err != nil {
+			tx.Rollback()
 			return c.JSON(http.StatusOK, epr.APIError("注文情報の取得に失敗しました。"))
 		}
 
@@ -96,6 +113,7 @@ func GetSeasoningData(c echo.Context) error {
 	}
 
 	// レスポンスを返却
+	tx.Commit()
 	return c.JSON(http.StatusOK, resOrders)
 }
 

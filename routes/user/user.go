@@ -410,21 +410,30 @@ func GetCompleteInfo(c echo.Context) error {
 
 	// ユーザー情報を取得
 	user := models.User{}
-	if err := database.DB.Where("token = ?", token).First(&user).Error; err != nil {
+	tx := database.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+	if err := tx.Where("token = ?", token).First(&user).Error; err != nil {
+		tx.Rollback()
 		return c.JSON(http.StatusOK, epr.APIError("ユーザー情報が見つかりません。"))
 	}
 
 	// ユーザーの注文情報を取得
 	order := models.Order{}
-	err := database.DB.Where("user_id = ?", user.ID).First(&order).Error
+	err := tx.Where("user_id = ?", user.ID).First(&order).Error
 	if err != nil {
+		tx.Rollback()
 		return c.JSON(http.StatusOK, epr.APIError("注文情報が見つかりません。"))
 	}
 
 	// 注文明細情報を取得
 	items := []models.OrderItem{}
-	err = database.DB.Where("order_id = ?", order.ID).Find(&items).Error
+	err = tx.Where("order_id = ?", order.ID).Find(&items).Error
 	if err != nil {
+		tx.Rollback()
 		return c.JSON(http.StatusOK, epr.APIError("注文明細の取得に失敗しました。"))
 	}
 
@@ -440,7 +449,8 @@ func GetCompleteInfo(c echo.Context) error {
 	// バーコードを取得
 	var barcode string
 	getBarcode := models.Barcode{}
-	if err := database.DB.Where("order_id = ?", order.ID).First(&getBarcode).Error; err != nil && err.Error() != "record not found" {
+	if err := tx.Where("order_id = ?", order.ID).First(&getBarcode).Error; err != nil && err.Error() != "record not found" {
+		tx.Rollback()
 		return c.JSON(http.StatusOK, epr.APIError("バーコードの取得に失敗しました。"))
 	} else if (err != nil && err.Error() == "record not found") || getBarcode.BarcodeData == "" {
 		// バーコードを生成
@@ -451,7 +461,8 @@ func GetCompleteInfo(c echo.Context) error {
 			BarcodeData: barcode,
 			OrderID:     order.ID,
 		}
-		if err := database.DB.Save(&barcodeData).Error; err != nil {
+		if err := tx.Save(&barcodeData).Error; err != nil {
+			tx.Rollback()
 			return c.JSON(http.StatusOK, epr.APIError("バーコードの保存に失敗しました。"))
 		}
 	} else {
@@ -464,5 +475,6 @@ func GetCompleteInfo(c echo.Context) error {
 		CompleteTime: order.TimeOfCompletion,
 		Items:        cartItems,
 	}
+	tx.Commit()
 	return c.JSON(http.StatusOK, info)
 }
